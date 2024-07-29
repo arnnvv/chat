@@ -1,6 +1,6 @@
 import { Redis } from "@upstash/redis";
 
-const getDB = (): {
+export const getRedis = (): {
   upatashRedisRestUrl: string;
   upstashRedisRestToken: string;
 } => {
@@ -13,13 +13,14 @@ const getDB = (): {
     throw new Error("Missing UPSTASH_REDIS_REST_URL");
   if (!upstashRedisRestToken || upstashRedisRestToken.length === 0)
     throw new Error("Missing UPSTASH_REDIS_REST_TOKEN");
+
   return {
     upatashRedisRestUrl,
     upstashRedisRestToken,
   };
 };
 
-export const db = new Redis({
-  url: getDB().upatashRedisRestUrl,
-  token: getDB().upstashRedisRestToken,
+export const redis = new Redis({
+  url: getRedis().upatashRedisRestUrl,
+  token: getRedis().upstashRedisRestToken,
 });
