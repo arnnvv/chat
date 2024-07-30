@@ -60,7 +60,7 @@ export const validateRequest = cache(
         );
       }
     } catch (e) {
-      throw new Error("Failed to validate session");
+      console.error(e);
     }
     return validSession;
   },

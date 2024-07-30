@@ -1,3 +1,4 @@
+"use server";
 import { generateId, LegacyScrypt } from "lucia";
 import { ActionResult } from "./app/_components/FormComponent";
 import { db } from "./lib/db";
