@@ -1,8 +1,8 @@
+import { getDB } from "@/lib/db";
 import { type Config } from "drizzle-kit";
-import { getDB } from ".";
 
 export default {
-  schema: "./schema.ts",
+  schema: "./src/lib/db/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
     url: getDB(),

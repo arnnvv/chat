@@ -7,11 +7,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,js,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,js,md}\"",
+    "ui:add": "pnpm dlx shadcn-ui@latest add",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@lucia-auth/adapter-drizzle": "^1.0.7",
     "@neondatabase/serverless": "^0.9.4",
+    "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@upstash/redis": "^1.33.0",
     "class-variance-authority": "^0.7.0",

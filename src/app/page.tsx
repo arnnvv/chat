@@ -1,6 +1,8 @@
-import { redis } from "@/lib/db/cache";
+import { validateRequest } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export default async function Home(): Promise<JSX.Element> {
-  await redis.set("hello", "Hello");
+  const { user } = await validateRequest();
+  if (!user) return redirect("login");
   return <>HI</>;
 }
