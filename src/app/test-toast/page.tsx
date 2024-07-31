@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export default function PAge(): JSX.Element {
+export default function Page(): JSX.Element {
   return (
     <Button
       variant="outline"
