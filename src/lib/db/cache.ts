@@ -1,5 +1,7 @@
 import { Redis } from "@upstash/redis";
 
+export const CACHE_TTL = 3600; // 1 hr
+
 export const getRedis = (): {
   upatashRedisRestUrl: string;
   upstashRedisRestToken: string;

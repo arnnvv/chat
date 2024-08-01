@@ -2,7 +2,10 @@ import { getRedis } from "@/lib/db/cache";
 
 type Command = "zrange" | "sismember" | "get" | "smembers";
 
-const fetchRedis = async (command: Command, ...args: (string | number)[]) => {
+export const fetchRedis = async (
+  command: Command,
+  ...args: (string | number)[]
+) => {
   const commandUrl = `${getRedis().upatashRedisRestUrl}/${command}/${args.join("/")}`;
   const response = await fetch(commandUrl, {
     headers: {
@@ -21,5 +24,3 @@ const fetchRedis = async (command: Command, ...args: (string | number)[]) => {
   }
   return data.result;
 };
-
-export default fetchRedis;

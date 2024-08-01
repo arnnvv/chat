@@ -12,7 +12,7 @@ export const users = createTable("users", {
   password: varchar("password", { length: 255 }).notNull(),
 });
 
-export type Users = typeof users.$inferSelect;
+export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
 export const sessions = createTable("sessions", {

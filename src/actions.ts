@@ -2,11 +2,13 @@
 import { generateId, LegacyScrypt } from "lucia";
 import { ActionResult } from "./app/_components/FormComponent";
 import { db } from "./lib/db";
-import { users, Users } from "./lib/db/schema";
+import { users, type User } from "./lib/db/schema";
 import lucia, { validateRequest } from "./lib/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { validatedEmail } from "./validate";
+import { fetchRedis } from "./helpers/redis";
+import { CACHE_TTL, redis } from "./lib/db/cache";
 
 export const logInAction = async (
   _: any,
@@ -23,9 +25,19 @@ export const logInAction = async (
   )
     return { error: "Invalid password" };
   try {
-    const existingUser = (await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.email, email),
-    })) as Users | undefined;
+    const cachedUser = await fetchRedis("get", `user:${email}`);
+    let existingUser: User | undefined;
+    if (cachedUser) existingUser = JSON.parse(cachedUser) as User;
+    else {
+      existingUser = (await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, email),
+      })) as User | undefined;
+
+      if (existingUser)
+        await redis.set(`user:${email}`, JSON.stringify(existingUser), {
+          ex: CACHE_TTL,
+        });
+    }
     if (!existingUser) return { error: "User not found" };
     const validPassword = await new LegacyScrypt().verify(
       existingUser.password,
@@ -61,16 +73,26 @@ export const signUpAction = async (
     return { error: "Invalid password" };
   const id = generateId(10);
   try {
+    const cachedUser = await fetchRedis("get", `user:${email}`);
+    if (cachedUser) return { error: "User already exists" };
     const hashedPassword = await new LegacyScrypt().hash(password);
     const existingUser = (await db.query.users.findFirst({
       where: (users, { eq }) => eq(users.email, email),
-    })) as Users | undefined;
+    })) as User | undefined;
     if (existingUser) return { error: "User already exists" };
-    await db.insert(users).values({
+
+    const newUser = {
       id,
       password: hashedPassword,
       email,
+    };
+
+    await db.insert(users).values(newUser);
+
+    await redis.set(`user:${email}`, JSON.stringify(newUser), {
+      ex: CACHE_TTL,
     });
+
     const session = await lucia.createSession(id, {});
     const sessionCookie = lucia.createSessionCookie(session.id);
     cookies().set(
