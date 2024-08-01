@@ -1,6 +1,5 @@
 "use client";
-import { useFormState } from "react-dom";
-import { ReactNode } from "react";
+import { ReactNode, useActionState } from "react";
 
 export interface ActionResult {
   error: string | null;
@@ -13,7 +12,7 @@ export const FormComponent = ({
   children: ReactNode;
   action: (prevState: any, formdata: FormData) => Promise<ActionResult>;
 }): JSX.Element => {
-  const [state, formAction] = useFormState(action, {
+  const [state, formAction] = useActionState(action, {
     error: null,
   });
 

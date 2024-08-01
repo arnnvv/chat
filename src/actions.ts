@@ -118,3 +118,7 @@ export const signOutAction = async (): Promise<ActionResult> => {
   );
   return redirect("/login");
 };
+
+export const addFriendAction = async (): Promise<ActionResult> => {
+  return redirect("/");
+};
