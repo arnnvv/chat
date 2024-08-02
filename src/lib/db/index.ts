@@ -1,7 +1,6 @@
 import { Pool } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import * as schema from "./schema";
-export { eq, sql } from "drizzle-orm";
 
 export const getDB = (): string => {
   const db: string | undefined = process.env.DATABASE_URL;

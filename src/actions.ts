@@ -2,13 +2,19 @@
 import { generateId, LegacyScrypt } from "lucia";
 import { ActionResult } from "./app/_components/FormComponent";
 import { db } from "./lib/db";
-import { users, type User } from "./lib/db/schema";
+import {
+  friendReqStatusEnum,
+  friendRequests,
+  users,
+  type User,
+} from "./lib/db/schema";
 import lucia, { validateRequest } from "./lib/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { validatedEmail } from "./validate";
 import { fetchRedis } from "./helpers/redis";
 import { CACHE_TTL, redis } from "./lib/db/cache";
+import { eq } from "drizzle-orm";
 
 export const logInAction = async (
   _: any,
@@ -119,6 +125,58 @@ export const signOutAction = async (): Promise<ActionResult> => {
   return redirect("/login");
 };
 
-export const addFriendAction = async (): Promise<ActionResult> => {
-  return redirect("/");
+export const addFriendAction = async (
+  _: any,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const { user } = await validateRequest();
+  if (!user) return { error: "not logged in" };
+  const receiverEmail = formData.get("friend-email") as string;
+  if (typeof receiverEmail !== "string") return { error: "Invalid email" };
+  if (!validatedEmail(receiverEmail)) return { error: "Invalid email" };
+  try {
+    const friend = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.email, receiverEmail),
+    });
+
+    if (!friend) return { error: "User not found" };
+
+    if (friend.id === user.id)
+      return { error: "Can't add yourself as a friend" };
+
+    const existingRequest = await db.query.friendRequests.findFirst({
+      where: (requests, { and, or }) =>
+        and(
+          or(
+            and(
+              eq(requests.requesterId, user.id),
+              eq(requests.recipientId, friend.id),
+            ),
+            and(
+              eq(requests.requesterId, friend.id),
+              eq(requests.recipientId, user.id),
+            ),
+          ),
+          or(eq(requests.status, "pending"), eq(requests.status, "accepted")),
+        ),
+    });
+
+    if (existingRequest)
+      if (existingRequest.status === "pending")
+        return { error: "Friend request already sent" };
+      else return { error: "You are already friends with this user" };
+
+    const newFriendRequest = {
+      id: generateId(21),
+      requesterId: user.id,
+      recipientId: friend.id,
+      status: friendReqStatusEnum.enumValues[0],
+    };
+
+    await db.insert(friendRequests).values(newFriendRequest);
+    return redirect("/dashboard/add");
+  } catch (e) {
+    console.error(e);
+    return { error: "unexpected error check Server logs" };
+  }
 };
