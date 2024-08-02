@@ -135,36 +135,62 @@ export const addFriendAction = async (
   if (typeof receiverEmail !== "string") return { error: "Invalid email" };
   if (!validatedEmail(receiverEmail)) return { error: "Invalid email" };
   try {
-    const friend = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.email, receiverEmail),
-    });
+    let friend = await fetchRedis("get", `user:${receiverEmail}`);
+    if (!friend) {
+      friend = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, receiverEmail),
+      });
+
+      if (friend)
+        await redis.set(`user:${receiverEmail}`, JSON.stringify(friend), {
+          ex: CACHE_TTL,
+        });
+    } else {
+      friend = JSON.parse(friend);
+    }
 
     if (!friend) return { error: "User not found" };
 
     if (friend.id === user.id)
-      return { error: "Can't add yourself as a friend" };
+      return { error: "You can't add yourself as a friend" };
 
-    const existingRequest = await db.query.friendRequests.findFirst({
-      where: (requests, { and, or }) =>
-        and(
-          or(
-            and(
-              eq(requests.requesterId, user.id),
-              eq(requests.recipientId, friend.id),
+    const cacheKey = `friendRequest:${user.id}:${friend.id}`;
+    let existingRequest = await fetchRedis("get", cacheKey);
+
+    if (!existingRequest) {
+      existingRequest = await db.query.friendRequests.findFirst({
+        where: (requests, { and, or }) =>
+          and(
+            or(
+              and(
+                eq(requests.requesterId, user.id),
+                eq(requests.recipientId, friend.id),
+              ),
+              and(
+                eq(requests.requesterId, friend.id),
+                eq(requests.recipientId, user.id),
+              ),
             ),
-            and(
-              eq(requests.requesterId, friend.id),
-              eq(requests.recipientId, user.id),
-            ),
+            or(eq(requests.status, "pending"), eq(requests.status, "accepted")),
           ),
-          or(eq(requests.status, "pending"), eq(requests.status, "accepted")),
-        ),
-    });
+      });
 
-    if (existingRequest)
-      if (existingRequest.status === "pending")
+      if (existingRequest) {
+        await redis.set(cacheKey, JSON.stringify(existingRequest), {
+          ex: CACHE_TTL,
+        });
+      }
+    } else {
+      existingRequest = JSON.parse(existingRequest);
+    }
+
+    if (existingRequest) {
+      if (existingRequest.status === "pending") {
         return { error: "Friend request already sent" };
-      else return { error: "You are already friends with this user" };
+      } else {
+        return { error: "You are already friends with this user" };
+      }
+    }
 
     const newFriendRequest = {
       id: generateId(21),
@@ -174,6 +200,11 @@ export const addFriendAction = async (
     };
 
     await db.insert(friendRequests).values(newFriendRequest);
+
+    await redis.set(cacheKey, JSON.stringify(newFriendRequest), {
+      ex: CACHE_TTL,
+    });
+
     return redirect("/dashboard/add");
   } catch (e) {
     console.error(e);
