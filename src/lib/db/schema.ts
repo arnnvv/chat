@@ -1,8 +1,19 @@
-import { pgTableCreator, timestamp, varchar } from "drizzle-orm/pg-core";
+import {
+  pgEnum,
+  pgTableCreator,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 
 export const createTable = pgTableCreator(
   (name: string): string => `chat_${name}`,
 );
+
+export const friendReqStatusEnum = pgEnum("friend_req_status", [
+  "pending",
+  "accepted",
+  "declined",
+]);
 
 export const users = createTable("users", {
   id: varchar("id", { length: 21 }).primaryKey(),
@@ -25,3 +36,29 @@ export const sessions = createTable("sessions", {
     mode: "date",
   }).notNull(),
 });
+
+export const friendRequests = createTable("friend_requests", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  requesterId: varchar("requester_id", { length: 21 })
+    .notNull()
+    .references(() => users.id),
+  recipientId: varchar("recipient_id", { length: 21 })
+    .notNull()
+    .references(() => users.id),
+  status: friendReqStatusEnum("status").notNull(),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .defaultNow()
+    .notNull(),
+});
+
+export type FriendRequest = typeof friendRequests.$inferSelect;
+export type NewFriendRequest = typeof friendRequests.$inferInsert;
