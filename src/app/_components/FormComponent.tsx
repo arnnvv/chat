@@ -1,9 +1,10 @@
 "use client";
-import { ReactNode, useActionState, useEffect } from "react";
+import { type ReactNode, useActionState, useEffect } from "react";
 import { toast } from "sonner";
 
 export interface ActionResult {
-  error: string | null;
+  error?: string | null;
+  message?: string | null;
 }
 
 export const FormComponent = ({
@@ -26,12 +27,16 @@ export const FormComponent = ({
           onClick: (): string | number => toast.dismiss("1"),
         },
       });
-  }, [state.error]);
 
-  return (
-    <form action={formAction}>
-      {children}
-      <p>{state.error}</p>
-    </form>
-  );
+    if (state.message)
+      toast.success(state.message, {
+        id: "2",
+        action: {
+          label: "Close",
+          onClick: (): string | number => toast.dismiss("2"),
+        },
+      });
+  }, [state.error, state.message]);
+
+  return <form action={formAction}>{children}</form>;
 };

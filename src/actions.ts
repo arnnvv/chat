@@ -198,7 +198,7 @@ export const addFriendAction = async (
       ex: CACHE_TTL,
     });
 
-    return redirect("/dashboard/add");
+    return { message: "Friend request sent" };
   } catch (e) {
     if (e instanceof ZodError) {
       const errors = e.issues.map((issue: ZodIssue): string => issue.message);
