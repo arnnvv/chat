@@ -15,6 +15,7 @@ import { validatedEmail } from "./validate";
 import { fetchRedis } from "./helpers/redis";
 import { CACHE_TTL, redis } from "./lib/db/cache";
 import { eq } from "drizzle-orm";
+import { ZodError, ZodIssue } from "zod";
 
 export const logInAction = async (
   _: any,
@@ -58,7 +59,7 @@ export const logInAction = async (
       sessionCookie.attributes,
     );
   } catch {
-    throw new Error("Something went wrong");
+    return { error: "Something went wrong" };
   }
   return redirect("/");
 };
@@ -145,9 +146,7 @@ export const addFriendAction = async (
         await redis.set(`user:${receiverEmail}`, JSON.stringify(friend), {
           ex: CACHE_TTL,
         });
-    } else {
-      friend = JSON.parse(friend);
-    }
+    } else friend = JSON.parse(friend);
 
     if (!friend) return { error: "User not found" };
 
@@ -175,22 +174,16 @@ export const addFriendAction = async (
           ),
       });
 
-      if (existingRequest) {
+      if (existingRequest)
         await redis.set(cacheKey, JSON.stringify(existingRequest), {
           ex: CACHE_TTL,
         });
-      }
-    } else {
-      existingRequest = JSON.parse(existingRequest);
-    }
+    } else existingRequest = JSON.parse(existingRequest);
 
-    if (existingRequest) {
-      if (existingRequest.status === "pending") {
+    if (existingRequest)
+      if (existingRequest.status === "pending")
         return { error: "Friend request already sent" };
-      } else {
-        return { error: "You are already friends with this user" };
-      }
-    }
+      else return { error: "You are already friends with this user" };
 
     const newFriendRequest = {
       id: generateId(21),
@@ -207,6 +200,10 @@ export const addFriendAction = async (
 
     return redirect("/dashboard/add");
   } catch (e) {
+    if (e instanceof ZodError) {
+      const errors = e.issues.map((issue: ZodIssue): string => issue.message);
+      return { error: errors.join(", ") };
+    }
     console.error(e);
     return { error: "unexpected error check Server logs" };
   }
