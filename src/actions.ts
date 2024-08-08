@@ -229,9 +229,6 @@ export const getFriendRequestsAction = async (
       await db.query.friendRequests.findMany({
         where: (requests, { and, eq }) =>
           and(eq(requests.recipientId, id), eq(requests.status, "pending")),
-        with: {
-          requester: true,
-        },
       });
 
     await redis.set(

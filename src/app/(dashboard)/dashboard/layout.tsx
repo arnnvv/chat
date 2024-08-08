@@ -76,7 +76,7 @@ export default async function page({
                 <li>
                   <FriendRequestSidebarOption
                     sessionId={user.id}
-                    unseenFriendReq={0}
+                    initialUnseenFriendRequests={9}
                   ></FriendRequestSidebarOption>
                 </li>
               </ul>

@@ -5,12 +5,14 @@ import { useState } from "react";
 
 export const FriendRequestSidebarOption = ({
   sessionId,
-  unseenFriendReq,
+  initialUnseenFriendRequests,
 }: {
   sessionId: string;
-  unseenFriendReq: number;
+  initialUnseenFriendRequests: number;
 }): JSX.Element => {
-  const [unsceenReq, setUnsceenReq] = useState<number>(unseenFriendReq);
+  const [unsceenReq, setUnsceenReq] = useState<number>(
+    initialUnseenFriendRequests,
+  );
   return (
     <Link
       href="/dashboard/requests"
