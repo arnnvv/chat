@@ -4,7 +4,7 @@ import { ActionResult } from "./app/_components/FormComponent";
 import { db } from "./lib/db";
 import {
   friendReqStatusEnum,
-  FriendRequest,
+  type FriendRequest,
   friendRequests,
   users,
   type User,
@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
 import { validatedEmail } from "./validate";
 import { fetchRedis } from "./helpers/redis";
 import { CACHE_TTL, redis } from "./lib/db/cache";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 
 export const logInAction = async (
@@ -212,13 +212,19 @@ export const addFriendAction = async (
 
 export const getFriendRequestsAction = async (
   id: string,
-): Promise<FriendRequest[]> => {
+): Promise<
+  | { data: FriendRequest[]; error?: undefined }
+  | { data?: undefined; error: string }
+> => {
+  const { user } = await validateRequest();
+  if (!user) return { error: "not logged in" };
   try {
     const cachedRequests = (await fetchRedis(
       "get",
       `pendingFriendRequests:${id}`,
     )) as string;
-    if (cachedRequests) return JSON.parse(cachedRequests) as FriendRequest[];
+    if (cachedRequests)
+      return { data: JSON.parse(cachedRequests) as FriendRequest[] };
     const pendingRequests: FriendRequest[] =
       await db.query.friendRequests.findMany({
         where: (requests, { and, eq }) =>
@@ -236,7 +242,7 @@ export const getFriendRequestsAction = async (
       },
     );
 
-    return pendingRequests;
+    return { data: pendingRequests };
   } catch (e) {
     console.error(`Get pending friend requests error: ${e}`);
     throw new Error(`Get pending friend requests error: ${e}`);
@@ -260,10 +266,12 @@ export const getFriendsAction = async (id: string): Promise<User[]> => {
       },
     );
 
-    const friendIds = friendships.map((friendship: FriendRequest): string => {
-      if (friendship.requesterId === id) return friendship.recipientId;
-      else return friendship.requesterId;
-    });
+    const friendIds: string[] = friendships.map(
+      (friendship: FriendRequest): string =>
+        friendship.requesterId === id
+          ? friendship.recipientId
+          : friendship.requesterId,
+    );
 
     let friends: User[] = [];
     for (const friendId of friendIds) {
