@@ -4,6 +4,7 @@ import { ActionResult } from "./app/_components/FormComponent";
 import { db } from "./lib/db";
 import {
   friendReqStatusEnum,
+  FriendRequest,
   friendRequests,
   users,
   type User,
@@ -108,7 +109,7 @@ export const signUpAction = async (
       sessionCookie.attributes,
     );
   } catch {
-    throw new Error("Unexpected error");
+    return { error: "Unexpected error" };
   }
   return redirect("/");
 };
@@ -206,5 +207,89 @@ export const addFriendAction = async (
     }
     console.error(e);
     return { error: "unexpected error check Server logs" };
+  }
+};
+
+export const getFriendRequestsAction = async (): Promise<
+  FriendRequest[] | { error: string } | undefined
+> => {
+  const { user } = await validateRequest();
+  if (!user) return { error: "not logged in" };
+  try {
+    const cachedRequests = (await fetchRedis(
+      "get",
+      `pendingFriendRequests:${user.id}`,
+    )) as FriendRequest[];
+    if (cachedRequests) return cachedRequests;
+    const pendingRequests: FriendRequest[] =
+      await db.query.friendRequests.findMany({
+        where: (requests, { and, eq }) =>
+          and(
+            eq(requests.recipientId, user.id),
+            eq(requests.status, "pending"),
+          ),
+        with: {
+          requester: true,
+        },
+      });
+
+    await redis.set(
+      `pendingFriendRequests:${user.id}`,
+      JSON.stringify(pendingRequests),
+      {
+        ex: CACHE_TTL,
+      },
+    );
+
+    return pendingRequests;
+  } catch (e) {
+    console.error(`Get pending friend requests error: ${e}`);
+  }
+};
+
+export const acceptFriendRequest = async () => {};
+
+export const getFriendsAction = async (id: string): Promise<User[]> => {
+  try {
+    const cachedFriends = (await fetchRedis("get", `friends:${id}`)) as string;
+    if (cachedFriends) {
+      return JSON.parse(cachedFriends);
+    }
+
+    const friendships: FriendRequest[] = await db.query.friendRequests.findMany(
+      {
+        where: (requests, { and, or }) =>
+          and(
+            or(eq(requests.requesterId, id), eq(requests.recipientId, id)),
+            eq(requests.status, "accepted"),
+          ),
+        with: {
+          requester: true,
+          recipient: true,
+        },
+      },
+    );
+
+    const friendIds = friendships.map((friendship: FriendRequest): string => {
+      if (friendship.requesterId === id) return friendship.recipientId;
+      else return friendship.requesterId;
+    });
+
+    let friends: User[] = [];
+    for (const friendId of friendIds) {
+      const friend = (await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.id, friendId),
+      })) as User | undefined;
+      if (friend) friends.push(friend);
+    }
+
+    await redis.set(`friends:${id}`, JSON.stringify(friends), {
+      ex: CACHE_TTL,
+    });
+
+    return friends;
+  } catch (error) {
+    console.error("Get friends error:", error);
+    throw new Error("Failed to fetch friends");
   }
 };
