@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
 import { validatedEmail } from "./validate";
 import { fetchRedis } from "./helpers/redis";
 import { CACHE_TTL, redis } from "./lib/db/cache";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 
 export const logInAction = async (
@@ -210,31 +210,26 @@ export const addFriendAction = async (
   }
 };
 
-export const getFriendRequestsAction = async (): Promise<
-  FriendRequest[] | { error: string } | undefined
-> => {
-  const { user } = await validateRequest();
-  if (!user) return { error: "not logged in" };
+export const getFriendRequestsAction = async (
+  id: string,
+): Promise<FriendRequest[]> => {
   try {
     const cachedRequests = (await fetchRedis(
       "get",
-      `pendingFriendRequests:${user.id}`,
-    )) as FriendRequest[];
-    if (cachedRequests) return cachedRequests;
+      `pendingFriendRequests:${id}`,
+    )) as string;
+    if (cachedRequests) return JSON.parse(cachedRequests) as FriendRequest[];
     const pendingRequests: FriendRequest[] =
       await db.query.friendRequests.findMany({
         where: (requests, { and, eq }) =>
-          and(
-            eq(requests.recipientId, user.id),
-            eq(requests.status, "pending"),
-          ),
+          and(eq(requests.recipientId, id), eq(requests.status, "pending")),
         with: {
           requester: true,
         },
       });
 
     await redis.set(
-      `pendingFriendRequests:${user.id}`,
+      `pendingFriendRequests:${id}`,
       JSON.stringify(pendingRequests),
       {
         ex: CACHE_TTL,
@@ -244,6 +239,7 @@ export const getFriendRequestsAction = async (): Promise<
     return pendingRequests;
   } catch (e) {
     console.error(`Get pending friend requests error: ${e}`);
+    throw new Error(`Get pending friend requests error: ${e}`);
   }
 };
 
@@ -252,9 +248,7 @@ export const acceptFriendRequest = async () => {};
 export const getFriendsAction = async (id: string): Promise<User[]> => {
   try {
     const cachedFriends = (await fetchRedis("get", `friends:${id}`)) as string;
-    if (cachedFriends) {
-      return JSON.parse(cachedFriends);
-    }
+    if (cachedFriends) return JSON.parse(cachedFriends) as User[];
 
     const friendships: FriendRequest[] = await db.query.friendRequests.findMany(
       {
@@ -263,10 +257,6 @@ export const getFriendsAction = async (id: string): Promise<User[]> => {
             or(eq(requests.requesterId, id), eq(requests.recipientId, id)),
             eq(requests.status, "accepted"),
           ),
-        with: {
-          requester: true,
-          recipient: true,
-        },
       },
     );
 
@@ -288,8 +278,7 @@ export const getFriendsAction = async (id: string): Promise<User[]> => {
     });
 
     return friends;
-  } catch (error) {
-    console.error("Get friends error:", error);
-    throw new Error("Failed to fetch friends");
+  } catch (e) {
+    throw new Error(`Failed to fetch friends ${e}`);
   }
 };

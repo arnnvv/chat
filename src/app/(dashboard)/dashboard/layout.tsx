@@ -2,7 +2,6 @@ import { getFriendsAction } from "@/actions";
 import { FriendRequestSidebarOption } from "@/app/_components/FriendRequestSidebarOption";
 import { Icon, Icons } from "@/app/_components/Icons";
 import { SidebarChatList } from "@/app/_components/SidebarChatList";
-import { Button } from "@/components/ui/button";
 import { validateRequest } from "@/lib/auth";
 import { type User } from "@/lib/db/schema";
 import Image from "next/image";
@@ -34,8 +33,7 @@ export default async function page({
   const { user } = await validateRequest();
   if (!user) return redirect("/login");
 
-  let friends: User[] = [];
-  //const friends: User[] = await getFriendsAction(user.id);
+  const friends: User[] = await getFriendsAction(user.id);
   return (
     <div className="w-full flex h-screen">
       <div className="flex h-full w-full max-w-xs grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6">
@@ -104,8 +102,6 @@ export default async function page({
                   </span>
                 </div>
               </div>
-
-              <Button className="h-full aspect-square" />
             </li>
           </ul>
         </nav>
