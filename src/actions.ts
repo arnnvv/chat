@@ -247,21 +247,19 @@ export const getFriendRequestsAction = async (
 };
 
 export const acceptFriendRequest = async (
-  _: any,
-  formData: FormData,
-): Promise<ActionResult> => {
-  const { user } = await validateRequest();
-  if (!user) return { error: "not logged in" };
-  const friendRequestId = formData.get("friend-id");
-  if (typeof friendRequestId !== "string" || !friendRequestId)
-    return { error: "Invalid friend request ID" };
+  friendRequestId: string,
+  sessionId: string,
+): Promise<
+  | { error: string; message?: undefined }
+  | { message: string; error?: undefined }
+> => {
   try {
     const friendRequest: FriendRequest | undefined =
       await db.query.friendRequests.findFirst({
         where: (requests, { and, eq }) =>
           and(
             eq(requests.id, friendRequestId),
-            eq(requests.recipientId, user.id),
+            eq(requests.recipientId, sessionId),
             eq(requests.status, "pending"),
           ),
       });
@@ -271,14 +269,60 @@ export const acceptFriendRequest = async (
       .set({ status: "accepted" })
       .where(eq(friendRequests.id, friendRequestId));
 
-    await redis.del(`pendingFriendRequests:${user.id}`);
+    await redis.del(`pendingFriendRequests:${sessionId}`);
     await redis.del(`friendRequests:${friendRequest.requesterId}`);
-    await redis.del(`friendRequests:${user.id}`);
+    await redis.del(`friendRequests:${sessionId}`);
 
     return { message: "Friend request accepted" };
   } catch (e) {
     return { error: `failed to accept friend request: ${e}` };
   }
+};
+
+export const rejectFriendRequest = async (
+  friendRequestId: string,
+  sessionId: string,
+): Promise<
+  | { error: string; message?: undefined }
+  | { message: string; error?: undefined }
+> => {
+  try {
+    const friendRequest: FriendRequest | undefined =
+      await db.query.friendRequests.findFirst({
+        where: (requests, { and, eq }) =>
+          and(
+            eq(requests.id, friendRequestId),
+            eq(requests.recipientId, sessionId),
+            eq(requests.status, "pending"),
+          ),
+      });
+    if (!friendRequest) return { error: "Friend Request not found" };
+    await db
+      .update(friendRequests)
+      .set({ status: "declined" })
+      .where(eq(friendRequests.id, friendRequestId));
+
+    await redis.del(`pendingFriendRequests:${sessionId}`);
+    await redis.del(`friendRequests:${friendRequest.requesterId}`);
+    await redis.del(`friendRequests:${sessionId}`);
+
+    return { message: "Friend request rejected" };
+  } catch (e) {
+    return { error: `failed to reject friend request: ${e}` };
+  }
+};
+
+export const resolveIdstoUserAction = async (
+  ids: string[],
+): Promise<User[]> => {
+  let users: User[] = [];
+  for (const id of ids) {
+    const user = (await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.id, id),
+    })) as User | undefined;
+    if (user) users.push(user);
+  }
+  return users;
 };
 
 export const getFriendsAction = async (id: string): Promise<User[]> => {
@@ -303,13 +347,7 @@ export const getFriendsAction = async (id: string): Promise<User[]> => {
           : friendship.requesterId,
     );
 
-    let friends: User[] = [];
-    for (const friendId of friendIds) {
-      const friend = (await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.id, friendId),
-      })) as User | undefined;
-      if (friend) friends.push(friend);
-    }
+    const friends: User[] = await resolveIdstoUserAction(friendIds);
 
     await redis.set(`friends:${id}`, JSON.stringify(friends), {
       ex: CACHE_TTL,
