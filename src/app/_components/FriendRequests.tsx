@@ -1,9 +1,8 @@
-import { FriendRequest } from "@/lib/db/schema";
-
+"use client";
 export const FriendRequests = ({
-  incommingFriendReqs,
+  incommingFriendReqIds,
   sessionId,
 }: {
-  incommingFriendReqs: FriendRequest[] | undefined;
+  incommingFriendReqIds: string[] | undefined;
   sessionId: string;
 }): JSX.Element => <>FriendRequests</>;

@@ -1,4 +1,4 @@
-import { getFriendsAction } from "@/actions";
+import { getFriendRequestsAction, getFriendsAction } from "@/actions";
 import { FriendRequestSidebarOption } from "@/app/_components/FriendRequestSidebarOption";
 import { Icon, Icons } from "@/app/_components/Icons";
 import { SidebarChatList } from "@/app/_components/SidebarChatList";
@@ -34,6 +34,7 @@ export default async function page({
   if (!user) return redirect("/login");
 
   const friends: User[] = await getFriendsAction(user.id);
+  const unsceenReqCount = await getFriendRequestsAction(user.id);
   return (
     <div className="w-full flex h-screen">
       <div className="flex h-full w-full max-w-xs grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6">
@@ -76,7 +77,9 @@ export default async function page({
                 <li>
                   <FriendRequestSidebarOption
                     sessionId={user.id}
-                    initialUnseenFriendRequests={9}
+                    initialUnseenFriendRequests={
+                      unsceenReqCount.data ? unsceenReqCount.data.length : 0
+                    }
                   ></FriendRequestSidebarOption>
                 </li>
               </ul>

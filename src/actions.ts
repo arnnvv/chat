@@ -246,7 +246,40 @@ export const getFriendRequestsAction = async (
   }
 };
 
-export const acceptFriendRequest = async () => {};
+export const acceptFriendRequest = async (
+  _: any,
+  formData: FormData,
+): Promise<ActionResult> => {
+  const { user } = await validateRequest();
+  if (!user) return { error: "not logged in" };
+  const friendRequestId = formData.get("friend-id");
+  if (typeof friendRequestId !== "string" || !friendRequestId)
+    return { error: "Invalid friend request ID" };
+  try {
+    const friendRequest: FriendRequest | undefined =
+      await db.query.friendRequests.findFirst({
+        where: (requests, { and, eq }) =>
+          and(
+            eq(requests.id, friendRequestId),
+            eq(requests.recipientId, user.id),
+            eq(requests.status, "pending"),
+          ),
+      });
+    if (!friendRequest) return { error: "Friend Request not found" };
+    await db
+      .update(friendRequests)
+      .set({ status: "accepted" })
+      .where(eq(friendRequests.id, friendRequestId));
+
+    await redis.del(`pendingFriendRequests:${user.id}`);
+    await redis.del(`friendRequests:${friendRequest.requesterId}`);
+    await redis.del(`friendRequests:${user.id}`);
+
+    return { message: "Friend request accepted" };
+  } catch (e) {
+    return { error: `failed to accept friend request: ${e}` };
+  }
+};
 
 export const getFriendsAction = async (id: string): Promise<User[]> => {
   try {
