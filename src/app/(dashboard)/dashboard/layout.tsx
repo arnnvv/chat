@@ -2,9 +2,10 @@ import { getFriendRequestsAction, getFriendsAction } from "@/actions";
 import { FriendRequestSidebarOption } from "@/app/_components/FriendRequestSidebarOption";
 import { Icon, Icons } from "@/app/_components/Icons";
 import { SidebarChatList } from "@/app/_components/SidebarChatList";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { validateRequest } from "@/lib/auth";
 import { type User } from "@/lib/db/schema";
-import Image from "next/image";
+import { AvatarImage } from "@radix-ui/react-avatar";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -88,13 +89,15 @@ export default async function page({
             <li className="-mx-6 mt-auto flex flex-1 items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900">
               <div className="flex flex-1 items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900">
                 <div className="relative h-8 w-8 bg-gray-50">
-                  <Image
-                    fill
-                    referrerPolicy="no-referrer"
-                    className="rounded-full"
-                    src={""}
-                    alt="Your profile picture"
-                  />
+                  <Avatar>
+                    <AvatarImage
+                      src="https://github.com/arnnvv.png"
+                      alt="@shadcn"
+                    />
+                    <AvatarFallback>
+                      {user.name ? user.name[0] : user.email[0]}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
 
                 <span className="sr-only">Your profile</span>

@@ -1,11 +1,11 @@
 import { ChatInput } from "@/app/_components/ChatInput";
 import { MessagesComp } from "@/app/_components/MessagesComp";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { validateRequest } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { User, users } from "@/lib/db/schema";
 import { Messages } from "@/lib/validate";
 import { eq } from "drizzle-orm";
-import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 
 const getChatMessages = async (chatId: string): Promise<Messages> => {
@@ -38,13 +38,17 @@ export default async function l({
         <div className="relative flex items-center space-x-4">
           <div className="relative">
             <div className="relative w-8 sm:w-12 h-8 sm:h-12">
-              <Image
-                fill
-                referrerPolicy="no-referrer"
-                src={""}
-                alt={`${chatPartner.name} profile picture`}
-                className="rounded-full"
-              />
+              <Avatar>
+                <AvatarImage
+                  src="https://github.com/arnnvv.png"
+                  alt="@shadcn"
+                />
+                <AvatarFallback>
+                  {chatPartner.name
+                    ? chatPartner.name[0]
+                    : chatPartner.email[0]}
+                </AvatarFallback>
+              </Avatar>
             </div>
           </div>
 

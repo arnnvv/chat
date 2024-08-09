@@ -1,4 +1,5 @@
 "use client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from "@/lib/db/schema";
 import { chatHrefConstructor } from "@/lib/utils";
 import { Message, Messages } from "@/lib/validate";
@@ -53,7 +54,16 @@ export const SidebarChatList = ({
               )}`}
               className="text-gray-700 hover:text-cyan-400 hover:bg-gray-50 group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
             >
-              {friend.name}
+              <Avatar>
+                <AvatarImage
+                  src="https://github.com/arnnvv.png"
+                  alt="@shadcn"
+                />
+                <AvatarFallback>
+                  {friend.name ? friend.name[0] : friend.email[0]}
+                </AvatarFallback>
+              </Avatar>
+              {friend.name ? friend.name : friend.email}
               {unseenMsgCount > 0 && (
                 <div className="border-r-cyan-400 font-medium text-white text-xs w-4 h-4 rounded-full flex justify-center items-center">
                   {unseenMsgCount}

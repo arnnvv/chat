@@ -368,3 +368,11 @@ export const getFriendsAction = async (id: string): Promise<User[]> => {
     throw new Error(`Failed to fetch friends ${e}`);
   }
 };
+
+export const sendMessageAction = async ({
+  input,
+  chatId,
+}: {
+  input: string;
+  chatId: string;
+}) => {};

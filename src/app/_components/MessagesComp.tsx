@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import { Message, Messages } from "@/lib/validate";
 import { MutableRefObject, useRef, useState } from "react";
 import { format } from "date-fns";
-import Image from "next/image";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AvatarImage } from "@radix-ui/react-avatar";
 
 export const MessagesComp = ({
   chatId,
@@ -71,13 +72,17 @@ export const MessagesComp = ({
                   invisible: hasNxtMessage,
                 })}
               >
-                <Image
-                  fill
-                  src={isCurrentUser ? (sessionImg as string) : ""}
-                  alt="Profile picture"
-                  referrerPolicy="no-referrer"
-                  className="rounded-full"
-                />
+                <Avatar>
+                  <AvatarImage
+                    src="https://github.com/arnnvv.png"
+                    alt="@shadcn"
+                  />
+                  <AvatarFallback>
+                    {chatPartner.name
+                      ? chatPartner.name[0]
+                      : chatPartner.email[0]}
+                  </AvatarFallback>
+                </Avatar>
               </div>
             </div>
           </div>

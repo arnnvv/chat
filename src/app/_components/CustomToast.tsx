@@ -1,12 +1,11 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { chatHrefConstructor, cn } from "@/lib/utils";
-import Image from "next/image";
 import { toast } from "sonner";
 
 export const UnseenToast = ({
   t,
   senderId,
   sessionId,
-  senderImg,
   senderName,
   senderMessage,
 }: {
@@ -14,7 +13,6 @@ export const UnseenToast = ({
   t;
   sessionId: string;
   senderId: string;
-  senderImg: string;
   senderName: string;
   senderMessage: string;
 }): JSX.Element => (
@@ -32,13 +30,10 @@ export const UnseenToast = ({
       <div className="flex items-start">
         <div className="flex-shrink-0 pt-0.5">
           <div className="relative h-10 w-10">
-            <Image
-              fill
-              referrerPolicy="no-referrer"
-              className="rounded-full"
-              src={senderImg}
-              alt={`${senderName} profile picture`}
-            />
+            <Avatar>
+              <AvatarImage src="https://github.com/arnnvv.png" alt="@shadcn" />
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
           </div>
         </div>
 
