@@ -15,7 +15,7 @@ import { redirect } from "next/navigation";
 import { validatedEmail } from "./validate";
 import { fetchRedis } from "./helpers/redis";
 import { CACHE_TTL, redis } from "./lib/db/cache";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 
 export const logInAction = async (
@@ -258,7 +258,7 @@ export const acceptFriendRequest = async (
       await db.query.friendRequests.findFirst({
         where: (requests, { and, eq }) =>
           and(
-            eq(requests.id, friendRequestId),
+            eq(requests.requesterId, friendRequestId),
             eq(requests.recipientId, sessionId),
             eq(requests.status, "pending"),
           ),
@@ -267,7 +267,12 @@ export const acceptFriendRequest = async (
     await db
       .update(friendRequests)
       .set({ status: "accepted" })
-      .where(eq(friendRequests.id, friendRequestId));
+      .where(
+        and(
+          eq(friendRequests.requesterId, friendRequestId),
+          eq(friendRequests.recipientId, sessionId),
+        ),
+      );
 
     await redis.del(`pendingFriendRequests:${sessionId}`);
     await redis.del(`friendRequests:${friendRequest.requesterId}`);
@@ -291,7 +296,7 @@ export const rejectFriendRequest = async (
       await db.query.friendRequests.findFirst({
         where: (requests, { and, eq }) =>
           and(
-            eq(requests.id, friendRequestId),
+            eq(requests.requesterId, friendRequestId),
             eq(requests.recipientId, sessionId),
             eq(requests.status, "pending"),
           ),
@@ -300,7 +305,12 @@ export const rejectFriendRequest = async (
     await db
       .update(friendRequests)
       .set({ status: "declined" })
-      .where(eq(friendRequests.id, friendRequestId));
+      .where(
+        and(
+          eq(friendRequests.requesterId, friendRequestId),
+          eq(friendRequests.recipientId, sessionId),
+        ),
+      );
 
     await redis.del(`pendingFriendRequests:${sessionId}`);
     await redis.del(`friendRequests:${friendRequest.requesterId}`);
