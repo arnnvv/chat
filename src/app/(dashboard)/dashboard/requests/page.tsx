@@ -1,6 +1,9 @@
-import { getFriendRequestsAction, resolveIdstoUserAction } from "@/actions";
+import {
+  getFriendRequestsAction,
+  resolveIdstoUserAction,
+  validateRequest,
+} from "@/actions";
 import { FriendRequests } from "@/app/_components/FriendRequests";
-import { validateRequest } from "@/lib/auth";
 import { FriendRequest, User } from "@/lib/db/schema";
 import { redirect } from "next/navigation";
 

@@ -1,7 +1,7 @@
+import { validateRequest } from "@/actions";
 import { ChatInput } from "@/app/_components/ChatInput";
 import { MessagesComp } from "@/app/_components/MessagesComp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { validateRequest } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { User, users } from "@/lib/db/schema";
 import { Messages } from "@/lib/validate";

@@ -1,5 +1,5 @@
 "use server";
-import { generateId, LegacyScrypt } from "lucia";
+import { generateId, LegacyScrypt, Session, User as LuciaUser } from "lucia";
 import { ActionResult } from "./app/_components/FormComponent";
 import { db } from "./lib/db";
 import {
@@ -9,14 +9,50 @@ import {
   users,
   type User,
 } from "./lib/db/schema";
-import lucia, { validateRequest } from "./lib/auth";
+import lucia from "./lib/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { validatedEmail } from "./validate";
-import { fetchRedis } from "./helpers/redis";
-import { CACHE_TTL, redis } from "./lib/db/cache";
 import { eq, and } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
+import { cache } from "react";
+
+export const validateRequest = cache(
+  async (): Promise<
+    { user: LuciaUser; session: Session } | { session: null; user: null }
+  > => {
+    const sessionId = cookies().get(lucia.sessionCookieName)?.value ?? null;
+    if (!sessionId)
+      return {
+        session: null,
+        user: null,
+      };
+    const validSession = await lucia.validateSession(sessionId);
+    try {
+      if (validSession.session && validSession.session.fresh) {
+        const sessionCookie = lucia.createSessionCookie(
+          validSession.session.id,
+        );
+        cookies().set(
+          sessionCookie.name,
+          sessionCookie.value,
+          sessionCookie.attributes,
+        );
+      }
+      if (!validSession.session) {
+        const sessionCookie = lucia.createBlankSessionCookie();
+        cookies().set(
+          sessionCookie.name,
+          sessionCookie.value,
+          sessionCookie.attributes,
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return validSession;
+  },
+);
 
 export const logInAction = async (
   _: any,
@@ -33,19 +69,10 @@ export const logInAction = async (
   )
     return { error: "Invalid password" };
   try {
-    const cachedUser = await fetchRedis("get", `user:${email}`);
-    let existingUser: User | undefined;
-    if (cachedUser) existingUser = JSON.parse(cachedUser) as User;
-    else {
-      existingUser = (await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.email, email),
-      })) as User | undefined;
+    const existingUser: User | undefined = (await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.email, email),
+    })) as User | undefined;
 
-      if (existingUser)
-        await redis.set(`user:${email}`, JSON.stringify(existingUser), {
-          ex: CACHE_TTL,
-        });
-    }
     if (!existingUser) return { error: "User not found" };
     const validPassword = await new LegacyScrypt().verify(
       existingUser.password,
@@ -79,10 +106,10 @@ export const signUpAction = async (
     password.length > 64
   )
     return { error: "Invalid password" };
+  const name = formData.get("name");
+  if (typeof name !== "string" || !name) return { error: "Name is required" };
   const id = generateId(10);
   try {
-    const cachedUser = await fetchRedis("get", `user:${email}`);
-    if (cachedUser) return { error: "User already exists" };
     const hashedPassword = await new LegacyScrypt().hash(password);
     const existingUser = (await db.query.users.findFirst({
       where: (users, { eq }) => eq(users.email, email),
@@ -91,15 +118,12 @@ export const signUpAction = async (
 
     const newUser = {
       id,
-      password: hashedPassword,
+      name,
       email,
+      password: hashedPassword,
     };
 
     await db.insert(users).values(newUser);
-
-    await redis.set(`user:${email}`, JSON.stringify(newUser), {
-      ex: CACHE_TTL,
-    });
 
     const session = await lucia.createSession(id, {});
     const sessionCookie = lucia.createSessionCookie(session.id);
@@ -137,28 +161,17 @@ export const addFriendAction = async (
   if (typeof receiverEmail !== "string") return { error: "Invalid email" };
   if (!validatedEmail(receiverEmail)) return { error: "Invalid email" };
   try {
-    let friend = await fetchRedis("get", `user:${receiverEmail}`);
-    if (!friend) {
-      friend = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.email, receiverEmail),
-      });
-
-      if (friend)
-        await redis.set(`user:${receiverEmail}`, JSON.stringify(friend), {
-          ex: CACHE_TTL,
-        });
-    } else friend = JSON.parse(friend);
+    const friend: User | undefined = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.email, receiverEmail),
+    });
 
     if (!friend) return { error: "User not found" };
 
     if (friend.id === user.id)
       return { error: "You can't add yourself as a friend" };
 
-    const cacheKey = `friendRequest:${user.id}:${friend.id}`;
-    let existingRequest = await fetchRedis("get", cacheKey);
-
-    if (!existingRequest) {
-      existingRequest = await db.query.friendRequests.findFirst({
+    const existingRequest: FriendRequest | undefined =
+      await db.query.friendRequests.findFirst({
         where: (requests, { and, or }) =>
           and(
             or(
@@ -175,12 +188,6 @@ export const addFriendAction = async (
           ),
       });
 
-      if (existingRequest)
-        await redis.set(cacheKey, JSON.stringify(existingRequest), {
-          ex: CACHE_TTL,
-        });
-    } else existingRequest = JSON.parse(existingRequest);
-
     if (existingRequest)
       if (existingRequest.status === "pending")
         return { error: "Friend request already sent" };
@@ -194,10 +201,6 @@ export const addFriendAction = async (
     };
 
     await db.insert(friendRequests).values(newFriendRequest);
-
-    await redis.set(cacheKey, JSON.stringify(newFriendRequest), {
-      ex: CACHE_TTL,
-    });
 
     return { message: "Friend request sent" };
   } catch (e) {
@@ -219,25 +222,11 @@ export const getFriendRequestsAction = async (
   const { user } = await validateRequest();
   if (!user) return { error: "not logged in" };
   try {
-    const cachedRequests = (await fetchRedis(
-      "get",
-      `pendingFriendRequests:${id}`,
-    )) as string;
-    if (cachedRequests)
-      return { data: JSON.parse(cachedRequests) as FriendRequest[] };
     const pendingRequests: FriendRequest[] =
       await db.query.friendRequests.findMany({
         where: (requests, { and, eq }) =>
           and(eq(requests.recipientId, id), eq(requests.status, "pending")),
       });
-
-    await redis.set(
-      `pendingFriendRequests:${id}`,
-      JSON.stringify(pendingRequests),
-      {
-        ex: CACHE_TTL,
-      },
-    );
 
     return { data: pendingRequests };
   } catch (e) {
@@ -274,10 +263,6 @@ export const acceptFriendRequest = async (
         ),
       );
 
-    await redis.del(`pendingFriendRequests:${sessionId}`);
-    await redis.del(`friendRequests:${friendRequest.requesterId}`);
-    await redis.del(`friendRequests:${sessionId}`);
-
     return { message: "Friend request accepted" };
   } catch (e) {
     return { error: `failed to accept friend request: ${e}` };
@@ -312,10 +297,6 @@ export const rejectFriendRequest = async (
         ),
       );
 
-    await redis.del(`pendingFriendRequests:${sessionId}`);
-    await redis.del(`friendRequests:${friendRequest.requesterId}`);
-    await redis.del(`friendRequests:${sessionId}`);
-
     return { message: "Friend request rejected" };
   } catch (e) {
     return { error: `failed to reject friend request: ${e}` };
@@ -337,9 +318,6 @@ export const resolveIdstoUserAction = async (
 
 export const getFriendsAction = async (id: string): Promise<User[]> => {
   try {
-    const cachedFriends = (await fetchRedis("get", `friends:${id}`)) as string;
-    if (cachedFriends) return JSON.parse(cachedFriends) as User[];
-
     const friendships: FriendRequest[] = await db.query.friendRequests.findMany(
       {
         where: (requests, { and, or }) =>
@@ -358,10 +336,6 @@ export const getFriendsAction = async (id: string): Promise<User[]> => {
     );
 
     const friends: User[] = await resolveIdstoUserAction(friendIds);
-
-    await redis.set(`friends:${id}`, JSON.stringify(friends), {
-      ex: CACHE_TTL,
-    });
 
     return friends;
   } catch (e) {

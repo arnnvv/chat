@@ -1,9 +1,8 @@
-import { addFriendAction } from "@/actions";
+import { addFriendAction, validateRequest } from "@/actions";
 import { ActionResult, FormComponent } from "@/app/_components/FormComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { validateRequest } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export default async function Page(): Promise<JSX.Element> {

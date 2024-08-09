@@ -1,9 +1,12 @@
-import { getFriendRequestsAction, getFriendsAction } from "@/actions";
+import {
+  getFriendRequestsAction,
+  getFriendsAction,
+  validateRequest,
+} from "@/actions";
 import { FriendRequestSidebarOption } from "@/app/_components/FriendRequestSidebarOption";
 import { Icon, Icons } from "@/app/_components/Icons";
 import { SidebarChatList } from "@/app/_components/SidebarChatList";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { validateRequest } from "@/lib/auth";
 import { type User } from "@/lib/db/schema";
 import { AvatarImage } from "@radix-ui/react-avatar";
 import Link from "next/link";

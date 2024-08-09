@@ -1,7 +1,6 @@
-import { validateRequest } from "@/lib/auth";
 import { FormComponent } from "./FormComponent";
 import { Button } from "@/components/ui/button";
-import { signOutAction } from "@/actions";
+import { signOutAction, validateRequest } from "@/actions";
 
 export const Appbar = async (): Promise<JSX.Element> => {
   const { user } = await validateRequest();

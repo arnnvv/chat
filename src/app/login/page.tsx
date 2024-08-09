@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { validateRequest } from "../../lib/auth";
 import Link from "next/link";
 import {
   Card,
@@ -12,7 +11,7 @@ import { FormComponent } from "../_components/FormComponent";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { logInAction } from "@/actions";
+import { logInAction, validateRequest } from "@/actions";
 
 export default async function Page(): Promise<JSX.Element> {
   const { user } = await validateRequest();

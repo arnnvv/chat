@@ -17,7 +17,7 @@ export const friendReqStatusEnum = pgEnum("friend_req_status", [
 
 export const users = createTable("users", {
   id: varchar("id", { length: 21 }).primaryKey(),
-  name: varchar("name"),
+  name: varchar("name").notNull(),
   email: varchar("email", { length: 255 }).unique().notNull(),
   number: varchar("number").unique(),
   password: varchar("password", { length: 255 }).notNull(),

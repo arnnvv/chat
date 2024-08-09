@@ -1,4 +1,4 @@
-import { validateRequest } from "@/lib/auth";
+import { validateRequest } from "@/actions";
 import { redirect } from "next/navigation";
 
 export default async function Home(): Promise<never> {

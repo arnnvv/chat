@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS "chat_sessions" (
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "chat_users" (
 	"id" varchar(21) PRIMARY KEY NOT NULL,
-	"name" varchar,
+	"name" varchar NOT NULL,
 	"email" varchar(255) NOT NULL,
 	"number" varchar,
 	"password" varchar(255) NOT NULL,
