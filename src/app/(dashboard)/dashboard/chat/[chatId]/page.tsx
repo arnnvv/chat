@@ -1,4 +1,4 @@
-import { validateRequest } from "@/actions";
+import { getChatMessagesAction, validateRequest } from "@/actions";
 import { ChatInput } from "@/app/_components/ChatInput";
 import { MessagesComp } from "@/app/_components/MessagesComp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,11 +7,6 @@ import { User, users } from "@/lib/db/schema";
 import { Messages } from "@/lib/validate";
 import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
-
-const getChatMessages = async (chatId: string): Promise<Messages> => {
-  let messages: Messages = [];
-  return messages;
-};
 
 export default async function l({
   params,
@@ -31,7 +26,8 @@ export default async function l({
 
   if (!chatPartner) throw new Error("Chat partner not found");
 
-  const initialMessages: Messages = await getChatMessages(chatId);
+  const initialMessages: Messages = await getChatMessagesAction(chatId);
+
   return (
     <div className="flex-1 justify-between flex flex-col h-full max-h-[calc(100vh-6rem)]">
       <div className="flex sm:items-center justify-between py-3 border-b-2 border-gray-200">

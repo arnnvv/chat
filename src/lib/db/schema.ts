@@ -1,6 +1,7 @@
 import {
   pgEnum,
   pgTableCreator,
+  text,
   timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -62,3 +63,23 @@ export const friendRequests = createTable("friend_requests", {
 
 export type FriendRequest = typeof friendRequests.$inferSelect;
 export type NewFriendRequest = typeof friendRequests.$inferInsert;
+
+export const messages = createTable("messages", {
+  id: varchar("id", { length: 255 }).primaryKey(),
+  senderId: varchar("sender_id", { length: 21 })
+    .notNull()
+    .references(() => users.id),
+  recipientId: varchar("recipient_id", { length: 21 })
+    .notNull()
+    .references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+    mode: "date",
+  })
+    .defaultNow()
+    .notNull(),
+});
+
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;

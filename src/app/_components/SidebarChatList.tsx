@@ -26,7 +26,6 @@ export const SidebarChatList = ({
   const [unseenMessages, setUnseenMessages] = useState<Messages>([]);
   const pathname: string | null = usePathname();
   useEffect((): void => {
-    //checking everytime if user sees a Messages remove it from unseen
     if (pathname?.includes("chat")) {
       setUnseenMessages(
         (prev: Messages): Messages =>

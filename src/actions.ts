@@ -8,14 +8,15 @@ import {
   friendRequests,
   users,
   type User,
+  messages,
 } from "./lib/db/schema";
 import lucia from "./lib/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { validatedEmail } from "./validate";
 import { eq, and } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 import { cache } from "react";
+import { Messages, validateEmail } from "./lib/validate";
 
 export const validateRequest = cache(
   async (): Promise<
@@ -60,7 +61,7 @@ export const logInAction = async (
 ): Promise<ActionResult> => {
   const email = formData.get("email");
   if (typeof email !== "string") return { error: "Email is required" };
-  if (!validatedEmail(email)) return { error: "Invalid email" };
+  if (!validateEmail({ email })) return { error: "Invalid email" };
   const password = formData.get("password");
   if (
     typeof password !== "string" ||
@@ -98,7 +99,7 @@ export const signUpAction = async (
 ): Promise<ActionResult> => {
   const email = formData.get("email");
   if (typeof email !== "string") return { error: "Email is required" };
-  if (!validatedEmail(email)) return { error: "Invalid email" };
+  if (!validateEmail({ email })) return { error: "Invalid email" };
   const password = formData.get("password");
   if (
     typeof password !== "string" ||
@@ -159,7 +160,8 @@ export const addFriendAction = async (
   if (!user) return { error: "not logged in" };
   const receiverEmail = formData.get("friend-email") as string;
   if (typeof receiverEmail !== "string") return { error: "Invalid email" };
-  if (!validatedEmail(receiverEmail)) return { error: "Invalid email" };
+  if (!validateEmail({ email: receiverEmail }))
+    return { error: "Invalid email" };
   try {
     const friend: User | undefined = await db.query.users.findFirst({
       where: (users, { eq }) => eq(users.email, receiverEmail),
@@ -349,4 +351,17 @@ export const sendMessageAction = async ({
 }: {
   input: string;
   chatId: string;
-}) => {};
+}) => {
+  console.log(input);
+};
+
+export const getChatMessagesAction = async (
+  chatId: string,
+): Promise<Messages> => {
+  const chatMessages: Messages | undefined = (await db.query.messages.findMany({
+    where: eq(messages.id, chatId),
+    orderBy: (messages, { asc }) => [asc(messages.createdAt)],
+  })) as Messages | undefined;
+  if (!chatMessages) throw new Error("Chat messages not found");
+  return chatMessages;
+};

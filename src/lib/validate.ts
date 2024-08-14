@@ -1,7 +1,7 @@
 import {
   SafeParseReturnType,
   ZodArray,
-  ZodNumber,
+  ZodDate,
   ZodObject,
   ZodString,
   z,
@@ -20,24 +20,24 @@ export const emailSchema: ZodObject<{
 export const messageScheema: ZodObject<{
   id: ZodString;
   senderId: ZodString;
-  receiverId: ZodString;
-  text: ZodString;
-  timestamp: ZodNumber;
+  recipientId: ZodString;
+  createdAt: ZodDate;
+  content: ZodString;
 }> = z.object({
   id: z.string(),
   senderId: z.string(),
-  receiverId: z.string(),
-  text: z.string(),
-  timestamp: z.number(),
+  recipientId: z.string(),
+  createdAt: z.date(),
+  content: z.string(),
 });
 
 export const messagesScheema: ZodArray<
   ZodObject<{
     id: ZodString;
     senderId: ZodString;
-    receiverId: ZodString;
-    text: ZodString;
-    timestamp: ZodNumber;
+    recipientId: ZodString;
+    createdAt: ZodDate;
+    content: ZodString;
   }>
 > = z.array(messageScheema);
 

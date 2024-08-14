@@ -8,6 +8,13 @@
       "when": 1723234002461,
       "tag": "0000_deep_wild_child",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1723666917253,
+      "tag": "0001_noisy_moonstone",
+      "breakpoints": true
     }
   ]
 }
