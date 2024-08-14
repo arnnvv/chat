@@ -1,8 +1,7 @@
 "use client";
 
-import { User } from "@/lib/db/schema";
+import { Message, User } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
-import { Message, Messages } from "@/lib/validate";
 import { MutableRefObject, useRef, useState } from "react";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -19,11 +18,11 @@ export const MessagesComp = ({
   chatPartner: User;
   sessionId: string;
   sessionImg: string | null | undefined;
-  initialMessages: Messages;
+  initialMessages: Message[];
 }): JSX.Element => {
   const scrollRef: MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
-  const [messages, setMessages] = useState<Messages>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   return (
     <div
       id="messages"
@@ -37,7 +36,7 @@ export const MessagesComp = ({
           messages[index - 1]?.senderId === messages[index]?.senderId;
         return (
           <div
-            key={`${message.id}-${message.timestamp}`}
+            key={`${message.id}-${message.createdAt}`}
             className="chat-message"
           >
             <div
@@ -59,9 +58,9 @@ export const MessagesComp = ({
                     !isCurrentUser && !hasNxtMessage && "rounded-bl-none",
                   )}
                 >
-                  {message.text}{" "}
+                  {message.content}{" "}
                   <span className="ml-2 text-xs text-gray-50">
-                    {format(message.timestamp, "HH:mm")}
+                    {format(message.createdAt, "HH:mm")}
                   </span>
                 </span>
               </div>

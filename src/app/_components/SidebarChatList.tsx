@@ -1,8 +1,7 @@
 "use client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "@/lib/db/schema";
+import type { Message, User } from "@/lib/db/schema";
 import { chatHrefConstructor } from "@/lib/utils";
-import { Message, Messages } from "@/lib/validate";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -23,15 +22,14 @@ export const SidebarChatList = ({
   sessionId: string;
   friends: User[];
 }): JSX.Element => {
-  const [unseenMessages, setUnseenMessages] = useState<Messages>([]);
+  const [unseenMessages, setUnseenMessages] = useState<Message[]>([]);
   const pathname: string | null = usePathname();
   useEffect((): void => {
     if (pathname?.includes("chat")) {
-      setUnseenMessages(
-        (prev: Messages): Messages =>
-          prev.filter(
-            (msg: Message): boolean => !pathname?.includes(msg.senderId),
-          ),
+      setUnseenMessages((prev: Message[]): Message[] =>
+        prev.filter(
+          (msg: Message): boolean => !pathname?.includes(msg.senderId),
+        ),
       );
     }
   }, [pathname]);

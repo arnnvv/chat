@@ -6,6 +6,7 @@ import {
   ZodString,
   z,
 } from "zod";
+import { Message } from "./db/schema";
 
 export const emailSchema: ZodObject<{
   email: ZodString;
@@ -43,10 +44,6 @@ export const messagesScheema: ZodArray<
 
 export type Email = z.infer<typeof emailSchema>;
 
-export type Message = z.infer<typeof messageScheema>;
-
-export type Messages = z.infer<typeof messagesScheema>;
-
 export const validateEmail: (data: Email) => boolean = (
   data: Email,
 ): boolean => {
@@ -62,10 +59,10 @@ export const validateMessage: (data: Message) => boolean = (
   return result.success;
 };
 
-export const validateMessages: (data: Messages) => boolean = (
-  data: Messages,
+export const validateMessages: (data: Message[]) => boolean = (
+  data: Message[],
 ): boolean => {
-  const result: SafeParseReturnType<Messages, Messages> =
+  const result: SafeParseReturnType<Message[], Message[]> =
     messagesScheema.safeParse(data);
   return result.success;
 };

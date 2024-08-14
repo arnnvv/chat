@@ -9,6 +9,7 @@ import {
   users,
   type User,
   messages,
+  Message,
 } from "./lib/db/schema";
 import lucia from "./lib/auth";
 import { cookies } from "next/headers";
@@ -16,7 +17,7 @@ import { redirect } from "next/navigation";
 import { eq, and } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 import { cache } from "react";
-import { Messages, validateEmail } from "./lib/validate";
+import { validateEmail } from "./lib/validate";
 
 export const validateRequest = cache(
   async (): Promise<
@@ -357,11 +358,13 @@ export const sendMessageAction = async ({
 
 export const getChatMessagesAction = async (
   chatId: string,
-): Promise<Messages> => {
-  const chatMessages: Messages | undefined = (await db.query.messages.findMany({
-    where: eq(messages.id, chatId),
-    orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-  })) as Messages | undefined;
+): Promise<Message[]> => {
+  const chatMessages: Message[] | undefined = (await db.query.messages.findMany(
+    {
+      where: eq(messages.id, chatId),
+      orderBy: (messages, { asc }) => [asc(messages.createdAt)],
+    },
+  )) as Message[] | undefined;
   if (!chatMessages) throw new Error("Chat messages not found");
   return chatMessages;
 };

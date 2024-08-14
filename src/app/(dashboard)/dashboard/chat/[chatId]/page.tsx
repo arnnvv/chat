@@ -3,8 +3,7 @@ import { ChatInput } from "@/app/_components/ChatInput";
 import { MessagesComp } from "@/app/_components/MessagesComp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/db";
-import { User, users } from "@/lib/db/schema";
-import { Messages } from "@/lib/validate";
+import { Message, User, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 
@@ -26,7 +25,7 @@ export default async function l({
 
   if (!chatPartner) throw new Error("Chat partner not found");
 
-  const initialMessages: Messages = await getChatMessagesAction(chatId);
+  const initialMessages: Message[] = await getChatMessagesAction(chatId);
 
   return (
     <div className="flex-1 justify-between flex flex-col h-full max-h-[calc(100vh-6rem)]">
