@@ -1,5 +1,5 @@
 {
-  "id": "595984a1-faa9-4280-9065-9c1ca9b6c9e9",
+  "id": "d427279a-021c-44ac-8e7a-2b8731c7d6f7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -66,6 +66,74 @@
         "chat_friend_requests_recipient_id_chat_users_id_fk": {
           "name": "chat_friend_requests_recipient_id_chat_users_id_fk",
           "tableFrom": "chat_friend_requests",
+          "tableTo": "chat_users",
+          "columnsFrom": [
+            "recipient_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "public.chat_messages": {
+      "name": "chat_messages",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sender_id": {
+          "name": "sender_id",
+          "type": "varchar(21)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "varchar(21)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "chat_messages_sender_id_chat_users_id_fk": {
+          "name": "chat_messages_sender_id_chat_users_id_fk",
+          "tableFrom": "chat_messages",
+          "tableTo": "chat_users",
+          "columnsFrom": [
+            "sender_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "chat_messages_recipient_id_chat_users_id_fk": {
+          "name": "chat_messages_recipient_id_chat_users_id_fk",
+          "tableFrom": "chat_messages",
           "tableTo": "chat_users",
           "columnsFrom": [
             "recipient_id"

@@ -14,7 +14,7 @@ import {
 import lucia from "./lib/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 import { cache } from "react";
 import { validateEmail } from "./lib/validate";
@@ -348,23 +348,66 @@ export const getFriendsAction = async (id: string): Promise<User[]> => {
 
 export const sendMessageAction = async ({
   input,
-  chatId,
+  sender,
+  receiver,
 }: {
   input: string;
-  chatId: string;
+  sender: Omit<User, "password">;
+  receiver: User;
 }) => {
-  console.log(input);
+  try {
+    let chat: Message[] | undefined = (await db
+      .select()
+      .from(messages)
+      .where(
+        or(
+          and(
+            eq(messages.senderId, sender.id),
+            eq(messages.recipientId, receiver.id),
+          ),
+        ),
+      )
+      .limit(1)) as Message[] | undefined;
+
+    if (!chat) throw new Error("Chat not found");
+    const [insertedMessage] = await db
+      .insert(messages)
+      .values({
+        id: generateId(10),
+        senderId: sender.id,
+        recipientId: receiver.id,
+        content: input,
+      })
+      .returning();
+    if (!insertedMessage) throw new Error("Failed to insert message");
+  } catch (e) {
+    throw new Error(`Failed to insert chat messages ${e}`);
+  }
 };
 
 export const getChatMessagesAction = async (
   chatId: string,
 ): Promise<Message[]> => {
-  const chatMessages: Message[] | undefined = (await db.query.messages.findMany(
-    {
-      where: eq(messages.id, chatId),
-      orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-    },
-  )) as Message[] | undefined;
-  if (!chatMessages) throw new Error("Chat messages not found");
-  return chatMessages;
+  try {
+    const [user1Id, user2Id] = chatId.split("--");
+    if (!user1Id || !user2Id) throw new Error("Invalid chat id");
+    const chatMessages: Message[] | undefined =
+      (await db.query.messages.findMany({
+        where: or(
+          and(
+            eq(messages.recipientId, user1Id),
+            eq(messages.senderId, user2Id),
+          ),
+          and(
+            eq(messages.recipientId, user2Id),
+            eq(messages.senderId, user2Id),
+          ),
+        ),
+        orderBy: (messages, { asc }) => [asc(messages.createdAt)],
+      })) as Message[] | undefined;
+    if (!chatMessages) throw new Error("Chat messages not found");
+    return chatMessages;
+  } catch (e) {
+    throw new Error(`Failed to fetch chat messages ${e}`);
+  }
 };

@@ -66,7 +66,7 @@ export default async function l({
         sessionId={user.id}
         initialMessages={initialMessages}
       />
-      <ChatInput chatId={chatId} chatPartner={chatPartner} />
+      <ChatInput sender={user} receiver={chatPartner} />
     </div>
   );
 }

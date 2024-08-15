@@ -14,11 +14,11 @@ import ReactTextareaAutosize from "react-textarea-autosize";
 import { toast } from "sonner";
 
 export const ChatInput = ({
-  chatId,
-  chatPartner,
+  sender,
+  receiver,
 }: {
-  chatId: string;
-  chatPartner: User;
+  sender: Omit<User, "password">;
+  receiver: User;
 }): JSX.Element => {
   const textareaRef: MutableRefObject<HTMLAreaElement | null> =
     useRef<HTMLAreaElement | null>(null);
@@ -36,7 +36,8 @@ export const ChatInput = ({
 
       await sendMessageAction({
         input,
-        chatId,
+        sender,
+        receiver,
       });
       setInput("");
       textareaRef.current?.focus();
@@ -63,7 +64,7 @@ export const ChatInput = ({
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
             setInput(e.target.value)
           }
-          placeholder={`Message ${chatPartner.name}`}
+          placeholder={`Message ${receiver.name}`}
           className="block w-full resize-none border-0 bg-transparent text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:py-1.5 sm:text-sm sm:leading-6"
         />
 
