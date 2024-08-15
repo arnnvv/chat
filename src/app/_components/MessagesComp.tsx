@@ -40,12 +40,34 @@ export const MessagesComp = ({
             className="chat-message"
           >
             <div
-              className={cn("flex items-end", isCurrentUser && "justify-end")}
+              className={cn(
+                "flex items-start space-x-2",
+                isCurrentUser && "justify-end space-x-reverse",
+              )}
             >
               <div
+                className={cn("flex-shrink-0", {
+                  "order-2": isCurrentUser,
+                  "order-1": !isCurrentUser,
+                  invisible: hasNxtMessage,
+                })}
+              >
+                <Avatar className="w-8 h-8">
+                  <AvatarImage
+                    src="https://github.com/arnnvv.png"
+                    alt="@shadcn"
+                  />
+                  <AvatarFallback>
+                    {chatPartner.name
+                      ? chatPartner.name[0]
+                      : chatPartner.email[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <div
                 className={cn(
-                  "flex flex-col space-y-2 text-base max-w-md mx-2",
-                  isCurrentUser ? "order-1 items-end" : "order-2 items-start",
+                  "flex flex-col space-y-2 text-base max-w-md",
+                  isCurrentUser ? "order-1" : "order-2",
                 )}
               >
                 <span
@@ -63,26 +85,6 @@ export const MessagesComp = ({
                     {format(message.createdAt, "HH:mm")}
                   </span>
                 </span>
-              </div>
-
-              <div
-                className={cn("relative w-6 h-6", {
-                  "order-2": isCurrentUser,
-                  "order-1": !isCurrentUser,
-                  invisible: hasNxtMessage,
-                })}
-              >
-                <Avatar>
-                  <AvatarImage
-                    src="https://github.com/arnnvv.png"
-                    alt="@shadcn"
-                  />
-                  <AvatarFallback>
-                    {chatPartner.name
-                      ? chatPartner.name[0]
-                      : chatPartner.email[0]}
-                  </AvatarFallback>
-                </Avatar>
               </div>
             </div>
           </div>
