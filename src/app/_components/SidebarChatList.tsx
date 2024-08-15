@@ -1,4 +1,5 @@
 "use client";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Message, User } from "@/lib/db/schema";
 import { chatHrefConstructor } from "@/lib/utils";
@@ -24,23 +25,21 @@ export const SidebarChatList = ({
 }): JSX.Element => {
   const [unseenMessages, setUnseenMessages] = useState<Message[]>([]);
   const pathname: string | null = usePathname();
+
   useEffect((): void => {
-    if (pathname?.includes("chat")) {
+    if (pathname?.includes("chat"))
       setUnseenMessages((prev: Message[]): Message[] =>
         prev.filter(
           (msg: Message): boolean => !pathname?.includes(msg.senderId),
         ),
       );
-    }
   }, [pathname]);
 
   return (
     <ul role="list" className="max-h-[25rem] overflow-y-auto -mx-2 space-y-1">
       {friends.sort().map((friend: User): JSX.Element => {
         const unseenMsgCount: number = unseenMessages.filter(
-          (unseenMsg: Message): boolean => {
-            return unseenMsg.senderId === friend.id;
-          },
+          (unseenMsg: Message): boolean => unseenMsg.senderId === friend.id,
         ).length;
         return (
           <li key={friend.id}>
@@ -60,9 +59,9 @@ export const SidebarChatList = ({
                   {friend.name ? friend.name[0] : friend.email[0]}
                 </AvatarFallback>
               </Avatar>
-              {friend.name ? friend.name : friend.email}
+              {friend.name ? friend.name : friend.email}{" "}
               {unseenMsgCount > 0 && (
-                <div className="border-r-cyan-400 font-medium text-white text-xs w-4 h-4 rounded-full flex justify-center items-center">
+                <div className="border-r-cyan-400 font-medium text-xs w-4 h-4 rounded-full flex justify-center items-center bg-cyan-400 text-white">
                   {unseenMsgCount}
                 </div>
               )}

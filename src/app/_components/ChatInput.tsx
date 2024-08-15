@@ -1,4 +1,5 @@
 "use client";
+
 import { sendMessageAction } from "@/actions";
 import { Button } from "@/components/ui/button";
 import { User } from "@/lib/db/schema";
@@ -34,13 +35,31 @@ export const ChatInput = ({
       }
       setIsLoading(true);
 
-      await sendMessageAction({
+      const res = await sendMessageAction({
         input,
         sender,
         receiver,
       });
-      setInput("");
-      textareaRef.current?.focus();
+      if (!res) throw new Error("Error While Sending Message");
+      if ("message" in res) {
+        toast.success(res.message, {
+          id: "message-sent",
+          action: {
+            label: "Dismiss",
+            onClick: (): string | number => toast.dismiss("message-sent"),
+          },
+        });
+        setInput("");
+        textareaRef.current?.focus();
+      } else if ("error" in res) {
+        toast.error(res.error, {
+          id: "message-error",
+          action: {
+            label: "Dismiss",
+            onClick: (): string | number => toast.dismiss("message-error"),
+          },
+        });
+      }
     } catch (e) {
       toast.error(`Error While Sending Message: ${e}`);
     } finally {

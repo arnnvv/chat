@@ -17,7 +17,7 @@ import { redirect } from "next/navigation";
 import { eq, and, or } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 import { cache } from "react";
-import { validateEmail } from "./lib/validate";
+import { validateEmail, validateMessages } from "./lib/validate";
 
 export const validateRequest = cache(
   async (): Promise<
@@ -354,7 +354,11 @@ export const sendMessageAction = async ({
   input: string;
   sender: Omit<User, "password">;
   receiver: User;
-}) => {
+}): Promise<
+  | { message: string; error?: undefined }
+  | { error: string; message?: undefined }
+  | undefined
+> => {
   try {
     let chat: Message[] | undefined = (await db
       .select()
@@ -369,7 +373,7 @@ export const sendMessageAction = async ({
       )
       .limit(1)) as Message[] | undefined;
 
-    if (!chat) throw new Error("Chat not found");
+    if (!chat) return { error: "Chat not found" };
     const [insertedMessage] = await db
       .insert(messages)
       .values({
@@ -379,33 +383,36 @@ export const sendMessageAction = async ({
         content: input,
       })
       .returning();
-    if (!insertedMessage) throw new Error("Failed to insert message");
+    if (insertedMessage) return { message: "Message sent" };
   } catch (e) {
-    throw new Error(`Failed to insert chat messages ${e}`);
+    return { error: `${e}` };
   }
 };
 
 export const getChatMessagesAction = async (
-  chatId: string,
+  user: Omit<User, "password">,
+  chatPartner: User,
 ): Promise<Message[]> => {
   try {
-    const [user1Id, user2Id] = chatId.split("--");
-    if (!user1Id || !user2Id) throw new Error("Invalid chat id");
+    if (!user.id || !chatPartner.id) throw new Error("Invalid chat id");
     const chatMessages: Message[] | undefined =
       (await db.query.messages.findMany({
         where: or(
           and(
-            eq(messages.recipientId, user1Id),
-            eq(messages.senderId, user2Id),
+            eq(messages.recipientId, chatPartner.id),
+            eq(messages.senderId, user.id),
           ),
           and(
-            eq(messages.recipientId, user2Id),
-            eq(messages.senderId, user2Id),
+            eq(messages.recipientId, user.id),
+            eq(messages.senderId, chatPartner.id),
           ),
         ),
         orderBy: (messages, { asc }) => [asc(messages.createdAt)],
       })) as Message[] | undefined;
     if (!chatMessages) throw new Error("Chat messages not found");
+    const reversedChatMessages: Message[] = chatMessages.reverse();
+    if (!validateMessages(reversedChatMessages))
+      throw new Error("Invalid messages");
     return chatMessages;
   } catch (e) {
     throw new Error(`Failed to fetch chat messages ${e}`);

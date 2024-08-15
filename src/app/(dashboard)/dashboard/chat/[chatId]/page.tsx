@@ -25,7 +25,10 @@ export default async function l({
 
   if (!chatPartner) throw new Error("Chat partner not found");
 
-  const initialMessages: Message[] = await getChatMessagesAction(chatId);
+  const initialMessages: Message[] = await getChatMessagesAction(
+    user,
+    chatPartner,
+  );
 
   return (
     <div className="flex-1 justify-between flex flex-col h-full max-h-[calc(100vh-6rem)]">
