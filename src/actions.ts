@@ -269,22 +269,28 @@ export const acceptFriendRequest = async (
       });
     if (!friendRequest) return { error: "Friend Request not found" };
 
-    pusherServer.trigger(
-      toPusherKey(`user:${friendRequestId}:friends`),
-      "new_friend",
-      {},
-    );
-
-    await db
-      .update(friendRequests)
-      .set({ status: "accepted" })
-      .where(
-        and(
-          eq(friendRequests.requesterId, friendRequestId),
-          eq(friendRequests.recipientId, sessionId),
-          eq(friendRequests.status, "pending"),
+    await Promise.all([
+      pusherServer.trigger(
+        toPusherKey(`user:${friendRequestId}:friends`),
+        "new_friend",
+        {},
+      ),
+      pusherServer.trigger(
+        toPusherKey(`user:${sessionId}:friends`),
+        "new_friend",
+        {},
+      ),
+      db
+        .update(friendRequests)
+        .set({ status: "accepted" })
+        .where(
+          and(
+            eq(friendRequests.requesterId, friendRequestId),
+            eq(friendRequests.recipientId, sessionId),
+            eq(friendRequests.status, "pending"),
+          ),
         ),
-      );
+    ]);
 
     return { message: "Friend request accepted" };
   } catch (e) {
