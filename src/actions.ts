@@ -269,16 +269,21 @@ export const acceptFriendRequest = async (
       });
     if (!friendRequest) return { error: "Friend Request not found" };
 
+    const [friendRequester, user] = await resolveIdstoUserAction([
+      friendRequestId,
+      sessionId,
+    ]);
+
     await Promise.all([
       pusherServer.trigger(
         toPusherKey(`user:${friendRequestId}:friends`),
         "new_friend",
-        {},
+        user,
       ),
       pusherServer.trigger(
         toPusherKey(`user:${sessionId}:friends`),
         "new_friend",
-        {},
+        friendRequester,
       ),
       db
         .update(friendRequests)
@@ -409,25 +414,23 @@ export const sendMessageAction = async ({
       createdAt: new Date(Date.now()),
     };
 
-    pusherServer.trigger(
-      toPusherKey(`chat:${chatHrefConstructor(sender.id, receiver.id)}`),
-      "incoming-message",
-      messageData,
-    );
-
-    pusherServer.trigger(
-      toPusherKey(`user:${receiver.id}:chats`),
-      "new_message",
-      {
-        ...messageData,
-        senderName: sender.name,
-      },
-    );
-    const [insertedMessage] = await db
-      .insert(messages)
-      .values(messageData)
-      .returning();
-    if (insertedMessage) return { message: "Message sent" };
+    await Promise.all([
+      pusherServer.trigger(
+        toPusherKey(`chat:${chatHrefConstructor(sender.id, receiver.id)}`),
+        "incoming-message",
+        messageData,
+      ),
+      pusherServer.trigger(
+        toPusherKey(`user:${receiver.id}:chats`),
+        "new_message",
+        {
+          ...messageData,
+          senderName: sender.name,
+        },
+      ),
+      db.insert(messages).values(messageData).returning(),
+    ]);
+    return { message: "Message sent" };
   } catch (e) {
     return { error: `${e}` };
   }
