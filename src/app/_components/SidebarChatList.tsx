@@ -2,17 +2,14 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { Message, User } from "@/lib/db/schema";
-import { chatHrefConstructor } from "@/lib/utils";
-import { usePathname } from "next/navigation";
+import { pusherClient } from "@/lib/pusher";
+import { chatHrefConstructor, toPusherKey } from "@/lib/utils";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-interface SidebarChatListProps {
-  friends: User[];
-  sessionId: string;
-}
+import { toast } from "sonner";
+import { CustomToast } from "./CustomToast";
 
 interface ExtendedMessageProps extends Message {
-  senderImg: string;
   senderName: string;
 }
 
@@ -25,6 +22,56 @@ export const SidebarChatList = ({
 }): JSX.Element => {
   const [unseenMessages, setUnseenMessages] = useState<Message[]>([]);
   const pathname: string | null = usePathname();
+  const router = useRouter();
+
+  useEffect((): (() => void) => {
+    const chatHandler = (extendedMessage: ExtendedMessageProps) => {
+      const shouldNotify: boolean =
+        pathname !==
+        `/dashboard/chat/${chatHrefConstructor(sessionId, extendedMessage.senderId)}`;
+
+      if (!shouldNotify) return;
+
+      toast.custom(
+        (t: any): JSX.Element => (
+          <CustomToast
+            t={t}
+            sessionId={sessionId}
+            senderId={extendedMessage.senderId}
+            senderMessage={extendedMessage.content}
+            senderName={extendedMessage.senderName}
+          />
+        ),
+      );
+
+      setUnseenMessages((prev: Message[]): Message[] => [
+        ...prev,
+        extendedMessage,
+      ]);
+    };
+
+    const newFriendHandler = () => {
+      router.refresh();
+    };
+
+    pusherClient.subscribe(toPusherKey(`user:${sessionId}:chats`));
+
+    pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`));
+
+    pusherClient.bind("new_message", chatHandler);
+
+    pusherClient.bind("new_friend", newFriendHandler);
+
+    return () => {
+      pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:chats`));
+
+      pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:friends`));
+
+      pusherClient.unbind("new_message", chatHandler);
+
+      pusherClient.unbind("new_friend", newFriendHandler);
+    };
+  }, [sessionId, router, pathname]);
 
   useEffect((): void => {
     if (pathname?.includes("chat"))

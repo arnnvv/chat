@@ -401,6 +401,14 @@ export const sendMessageAction = async ({
       messageData,
     );
 
+    pusherServer.trigger(
+      toPusherKey(`user:${receiver.id}:chats`),
+      "new_message",
+      {
+        ...messageData,
+        senderName: sender.name,
+      },
+    );
     const [insertedMessage] = await db
       .insert(messages)
       .values(messageData)

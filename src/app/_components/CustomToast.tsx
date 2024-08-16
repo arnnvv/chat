@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { chatHrefConstructor, cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export const UnseenToast = ({
+export const CustomToast = ({
   t,
   senderId,
   sessionId,
