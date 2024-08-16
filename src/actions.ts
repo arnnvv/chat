@@ -1,6 +1,6 @@
 "use server";
+
 import { generateId, LegacyScrypt, Session, User as LuciaUser } from "lucia";
-import { ActionResult } from "./app/_components/FormComponent";
 import { db } from "./lib/db";
 import {
   friendReqStatusEnum,
@@ -14,12 +14,13 @@ import {
 import lucia from "./lib/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, desc } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 import { cache } from "react";
 import { validateEmail, validateMessages } from "./lib/validate";
 import { pusherServer } from "./lib/pusher";
 import { chatHrefConstructor, toPusherKey } from "./lib/utils";
+import { ActionResult } from "./components/FormComponent";
 
 export const validateRequest = cache(
   async (): Promise<
@@ -454,4 +455,17 @@ export const getChatMessagesAction = async (
   } catch (e) {
     throw new Error(`Failed to fetch chat messages ${e}`);
   }
+};
+
+export const getLastMessageAction = async (
+  userId: string,
+  friendId: string,
+): Promise<Message> => {
+  return {
+    id: "",
+    senderId: "",
+    recipientId: "",
+    content: "",
+    createdAt: new Date(),
+  };
 };

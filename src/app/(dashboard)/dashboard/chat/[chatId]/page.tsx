@@ -1,6 +1,6 @@
 import { getChatMessagesAction, validateRequest } from "@/actions";
-import { ChatInput } from "@/app/_components/ChatInput";
-import { MessagesComp } from "@/app/_components/MessagesComp";
+import { ChatInput } from "@/components/ChatInput";
+import { MessagesComp } from "@/components/MessagesComp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/db";
 import { Message, User, users } from "@/lib/db/schema";

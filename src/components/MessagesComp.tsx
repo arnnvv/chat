@@ -4,8 +4,7 @@ import { Message, User } from "@/lib/db/schema";
 import { cn, toPusherKey } from "@/lib/utils";
 import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { AvatarImage } from "@radix-ui/react-avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { pusherClient } from "@/lib/pusher";
 
 export const MessagesComp = ({

@@ -7,11 +7,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormComponent } from "../_components/FormComponent";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { logInAction, validateRequest } from "@/actions";
+import { FormComponent } from "@/components/FormComponent";
 
 export default async function Page(): Promise<JSX.Element> {
   const { user } = await validateRequest();

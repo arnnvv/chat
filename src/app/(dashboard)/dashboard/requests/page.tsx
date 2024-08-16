@@ -3,7 +3,7 @@ import {
   resolveIdstoUserAction,
   validateRequest,
 } from "@/actions";
-import { FriendRequests } from "@/app/_components/FriendRequests";
+import { FriendRequests } from "@/components/FriendRequests";
 import { FriendRequest, User } from "@/lib/db/schema";
 import { redirect } from "next/navigation";
 

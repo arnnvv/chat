@@ -3,12 +3,11 @@ import {
   getFriendsAction,
   validateRequest,
 } from "@/actions";
-import { FriendRequestSidebarOption } from "@/app/_components/FriendRequestSidebarOption";
-import { Icon, Icons } from "@/app/_components/Icons";
-import { SidebarChatList } from "@/app/_components/SidebarChatList";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { FriendRequestSidebarOption } from "@/components/FriendRequestSidebarOption";
+import { Icon, Icons } from "@/components/Icons";
+import { SidebarChatList } from "@/components/SidebarChatList";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type User } from "@/lib/db/schema";
-import { AvatarImage } from "@radix-ui/react-avatar";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";

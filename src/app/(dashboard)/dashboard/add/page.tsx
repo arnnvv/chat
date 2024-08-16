@@ -1,5 +1,5 @@
 import { addFriendAction, validateRequest } from "@/actions";
-import { ActionResult, FormComponent } from "@/app/_components/FormComponent";
+import { FormComponent } from "@/components/FormComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
