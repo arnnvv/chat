@@ -2,9 +2,15 @@
 
 import { acceptFriendRequest, rejectFriendRequest } from "@/actions";
 import { type User } from "@/lib/db/schema";
+import { pusherClient } from "@/lib/pusher";
+import { toPusherKey } from "@/lib/utils";
 import { Check, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
+const friendReqHandler = (): void => {
+  console.log(`new Friend Request`);
+};
 
 export const FriendRequests = ({
   incommingFriendReqs,
@@ -14,6 +20,22 @@ export const FriendRequests = ({
   sessionId: string;
 }): JSX.Element => {
   const [friendReqs, setFriendReqs] = useState<User[]>(incommingFriendReqs);
+
+  useEffect(() => {
+    pusherClient.subscribe(
+      toPusherKey(`user:${sessionId}:incoming_friend_request`),
+    );
+
+    pusherClient.bind(`incoming_friend_request`, friendReqHandler);
+
+    return () => {
+      pusherClient.unsubscribe(
+        toPusherKey(`user:${sessionId}:incoming_friend_request`),
+      );
+      pusherClient.unbind(`incoming_friend_request`, friendReqHandler);
+    };
+  }, [sessionId]);
+
   return (
     <>
       {friendReqs.length === 0 ? (

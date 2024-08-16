@@ -8,6 +8,14 @@ import {
 } from "zod";
 import { Message } from "./db/schema";
 
+type MessageSchema = ZodObject<{
+  id: ZodString;
+  senderId: ZodString;
+  recipientId: ZodString;
+  createdAt: ZodDate;
+  content: ZodString;
+}>;
+
 export const emailSchema: ZodObject<{
   email: ZodString;
 }> = z.object({
@@ -18,13 +26,7 @@ export const emailSchema: ZodObject<{
     .email(),
 });
 
-export const messageScheema: ZodObject<{
-  id: ZodString;
-  senderId: ZodString;
-  recipientId: ZodString;
-  createdAt: ZodDate;
-  content: ZodString;
-}> = z.object({
+export const messageScheema: MessageSchema = z.object({
   id: z.string(),
   senderId: z.string(),
   recipientId: z.string(),
@@ -32,15 +34,7 @@ export const messageScheema: ZodObject<{
   content: z.string(),
 });
 
-export const messagesScheema: ZodArray<
-  ZodObject<{
-    id: ZodString;
-    senderId: ZodString;
-    recipientId: ZodString;
-    createdAt: ZodDate;
-    content: ZodString;
-  }>
-> = z.array(messageScheema);
+export const messagesScheema: ZodArray<MessageSchema> = z.array(messageScheema);
 
 export type Email = z.infer<typeof emailSchema>;
 

@@ -18,6 +18,8 @@ import { eq, and, or } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 import { cache } from "react";
 import { validateEmail, validateMessages } from "./lib/validate";
+import { pusherServer } from "./lib/pusher";
+import { toPusherKey } from "./lib/utils";
 
 export const validateRequest = cache(
   async (): Promise<
@@ -195,6 +197,15 @@ export const addFriendAction = async (
       if (existingRequest.status === "pending")
         return { error: "Friend request already sent" };
       else return { error: "You are already friends with this user" };
+
+    pusherServer.trigger(
+      toPusherKey(`user:${friend.id}:incoming_friend_request`),
+      `incoming_friend_request`,
+      {
+        senderId: user.id,
+        senderEmail: user.email,
+      },
+    );
 
     const newFriendRequest = {
       id: generateId(21),

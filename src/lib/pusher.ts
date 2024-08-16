@@ -7,18 +7,15 @@ const getPusher = (): {
   pusherAppSecret: string;
   pusherAppCluster: string;
 } => {
-  const pusherAppId: string | undefined = process.env.PUSHER_APP_ID;
+  const pusherAppId: string | undefined = process.env.PUSHER_APP_ID!;
   const pusherAppKey: string | undefined =
     process.env.NEXT_PUBLIC_PUSHER_APP_KEY;
-  const pusherAppSecret: string | undefined = process.env.PUSHER_APP_SECRET;
-  const pusherAppCluster: string | undefined = process.env.PUSHER_APP_CLUSTER;
+  const pusherAppSecret: string | undefined = process.env.PUSHER_APP_SECRET!;
+  const pusherAppCluster: string | undefined =
+    process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER;
 
-  if (!pusherAppId || pusherAppId.length === 0)
-    throw new Error("Missing PUSHER_APP_ID");
   if (!pusherAppKey || pusherAppKey.length === 0)
     throw new Error("Missing PUSHER_APP_KEY");
-  if (!pusherAppSecret || pusherAppSecret.length === 0)
-    throw new Error("Missing PUSHER_APP_SECRET");
   if (!pusherAppCluster || pusherAppCluster.length === 0)
     throw new Error("Missing PUSHER_APP_CLUSTER");
 
