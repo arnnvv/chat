@@ -475,9 +475,27 @@ export const getChatMessagesAction = async (
 };
 
 export const getLastMessageAction = async (
-  userId: string,
-  friendId: string,
+  user: Omit<User, "password">,
+  friend: User,
 ): Promise<Message> => {
+  const last: Message[] = await db
+    .select()
+    .from(messages)
+    .where(
+      or(
+        and(
+          eq(messages.senderId, user.id),
+          eq(messages.recipientId, friend.id),
+        ),
+        and(
+          eq(messages.recipientId, user.id),
+          eq(messages.senderId, friend.id),
+        ),
+      ),
+    )
+    .limit(1);
+  console.log(last[0]);
+
   return {
     id: "",
     senderId: "",

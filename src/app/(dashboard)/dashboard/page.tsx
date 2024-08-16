@@ -28,10 +28,7 @@ export default async function Pager(): Promise<JSX.Element> {
         email: string;
         password: string;
       }> => {
-        const lastMessage: Message = await getLastMessageAction(
-          user.id,
-          friend.id,
-        );
+        const lastMessage: Message = await getLastMessageAction(user, friend);
         return { ...friend, lastMessage };
       },
     ),
