@@ -19,11 +19,22 @@ export default async function page(): Promise<JSX.Element> {
 
   const users: User[] = await resolveIdstoUserAction(ids);
 
+  const incommingFriendReqUsers: Omit<User, "number" | "password">[] =
+    users.map((user: User): Omit<User, "number" | "password"> => {
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      };
+    });
   return (
     <main className="pt-8">
       <h1 className="font-bold text-5xl mb-8">Add a friend</h1>
       <div className="flex flex-col gap-4">
-        <FriendRequests incommingFriendReqs={users} sessionId={user.id} />
+        <FriendRequests
+          incommingFriendReqs={incommingFriendReqUsers}
+          sessionId={user.id}
+        />
       </div>
     </main>
   );

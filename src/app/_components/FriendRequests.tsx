@@ -4,24 +4,44 @@ import { acceptFriendRequest, rejectFriendRequest } from "@/actions";
 import { type User } from "@/lib/db/schema";
 import { pusherClient } from "@/lib/pusher";
 import { toPusherKey } from "@/lib/utils";
-import { Check, X } from "lucide-react";
+import { Check, UserPlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
-const friendReqHandler = (): void => {
-  console.log(`new Friend Request`);
-};
 
 export const FriendRequests = ({
   incommingFriendReqs,
   sessionId,
 }: {
-  incommingFriendReqs: User[];
+  incommingFriendReqs: Omit<User, "number" | "password">[];
   sessionId: string;
 }): JSX.Element => {
-  const [friendReqs, setFriendReqs] = useState<User[]>(incommingFriendReqs);
+  const [friendReqs, setFriendReqs] =
+    useState<Omit<User, "number" | "password">[]>(incommingFriendReqs);
 
-  useEffect(() => {
+  const friendReqHandler = ({
+    senderId,
+    senderEmail,
+    senderName,
+  }: {
+    senderId: string;
+    senderEmail: string;
+    senderName: string;
+  }): void => {
+    setFriendReqs(
+      (
+        prev: Omit<User, "number" | "password">[],
+      ): Omit<User, "number" | "password">[] => [
+        ...prev,
+        {
+          id: senderId,
+          email: senderEmail,
+          name: senderName,
+        },
+      ],
+    );
+  };
+
+  useEffect((): (() => void) => {
     pusherClient.subscribe(
       toPusherKey(`user:${sessionId}:incoming_friend_request`),
     );
@@ -42,8 +62,9 @@ export const FriendRequests = ({
         <p className="text-sm italic text-zinc-500">No friend requests..</p>
       ) : (
         friendReqs.map(
-          (friendReq: User): JSX.Element => (
+          (friendReq: Omit<User, "number" | "password">): JSX.Element => (
             <div key={friendReq.id} className="flex gap-4 items-center">
+              <UserPlus className="text-black" />
               <p className="font-medium text-lg">
                 {friendReq.name ? friendReq.name : friendReq.email}
               </p>
