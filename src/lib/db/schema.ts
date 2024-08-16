@@ -76,9 +76,7 @@ export const messages = createTable("messages", {
   createdAt: timestamp("created_at", {
     withTimezone: true,
     mode: "date",
-  })
-    .defaultNow()
-    .notNull(),
+  }).notNull(),
 });
 
 export type Message = typeof messages.$inferSelect;

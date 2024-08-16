@@ -19,7 +19,7 @@ import { ZodError, ZodIssue } from "zod";
 import { cache } from "react";
 import { validateEmail, validateMessages } from "./lib/validate";
 import { pusherServer } from "./lib/pusher";
-import { toPusherKey } from "./lib/utils";
+import { chatHrefConstructor, toPusherKey } from "./lib/utils";
 
 export const validateRequest = cache(
   async (): Promise<
@@ -386,14 +386,24 @@ export const sendMessageAction = async ({
       .limit(1)) as Message[] | undefined;
 
     if (!chat) return { error: "Chat not found" };
+
+    const messageData: Message = {
+      id: generateId(10),
+      senderId: sender.id,
+      recipientId: receiver.id,
+      content: input,
+      createdAt: new Date(Date.now()),
+    };
+
+    pusherServer.trigger(
+      toPusherKey(`chat:${chatHrefConstructor(sender.id, receiver.id)}`),
+      "incoming-message",
+      messageData,
+    );
+
     const [insertedMessage] = await db
       .insert(messages)
-      .values({
-        id: generateId(10),
-        senderId: sender.id,
-        recipientId: receiver.id,
-        content: input,
-      })
+      .values(messageData)
       .returning();
     if (insertedMessage) return { message: "Message sent" };
   } catch (e) {

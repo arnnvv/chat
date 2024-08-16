@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS "chat_messages" (
 	"sender_id" varchar(21) NOT NULL,
 	"recipient_id" varchar(21) NOT NULL,
 	"content" text NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "chat_sessions" (

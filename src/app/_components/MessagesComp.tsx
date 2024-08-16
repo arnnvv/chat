@@ -1,11 +1,12 @@
 "use client";
 
 import { Message, User } from "@/lib/db/schema";
-import { cn } from "@/lib/utils";
-import { MutableRefObject, useRef, useState } from "react";
+import { cn, toPusherKey } from "@/lib/utils";
+import { MutableRefObject, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AvatarImage } from "@radix-ui/react-avatar";
+import { pusherClient } from "@/lib/pusher";
 
 export const MessagesComp = ({
   chatId,
@@ -23,6 +24,23 @@ export const MessagesComp = ({
   const scrollRef: MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
+
+  const messageHandler = (message: Message): void => {
+    setMessages((prev: Message[]): Message[] => [message, ...prev]);
+  };
+
+  useEffect((): (() => void) => {
+    pusherClient.subscribe(toPusherKey(`chat:${chatId}`));
+
+    pusherClient.bind("incoming-message", messageHandler);
+
+    return () => {
+      pusherClient.unsubscribe(toPusherKey(`chat:${chatId}`));
+
+      pusherClient.unbind("incoming-message", messageHandler);
+    };
+  }, [chatId]);
+
   return (
     <div
       id="messages"
