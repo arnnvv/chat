@@ -267,6 +267,13 @@ export const acceptFriendRequest = async (
           ),
       });
     if (!friendRequest) return { error: "Friend Request not found" };
+
+    pusherServer.trigger(
+      toPusherKey(`user:${friendRequestId}:friends`),
+      "new_friend",
+      {},
+    );
+
     await db
       .update(friendRequests)
       .set({ status: "accepted" })
