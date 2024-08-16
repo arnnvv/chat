@@ -1,4 +1,8 @@
-import { getChatMessagesAction, validateRequest } from "@/actions";
+import {
+  getChatMessagesAction,
+  idToUserAction,
+  validateRequest,
+} from "@/actions";
 import { ChatInput } from "@/components/ChatInput";
 import { MessagesComp } from "@/components/MessagesComp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,6 +10,20 @@ import { db } from "@/lib/db";
 import { Message, User, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
+
+export const generateMetadata = async ({
+  params,
+}: {
+  params: { chatId: string };
+}): Promise<{ title: string }> => {
+  const { user } = await validateRequest();
+  if (!user) return redirect("/login");
+  const [userId1, userId2] = params.chatId.split("--");
+  const chatPartnerId = user.id === userId1 ? userId2 : userId1;
+  const chatPartner: User = await idToUserAction(chatPartnerId);
+
+  return { title: `Chatting with ${chatPartner.name}` };
+};
 
 export default async function l({
   params,

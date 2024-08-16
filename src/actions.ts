@@ -14,7 +14,7 @@ import {
 import lucia from "./lib/auth";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { eq, and, or, desc } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 import { cache } from "react";
 import { validateEmail, validateMessages } from "./lib/validate";
@@ -154,6 +154,14 @@ export const signOutAction = async (): Promise<ActionResult> => {
     sessionCookie.attributes,
   );
   return redirect("/login");
+};
+
+export const idToUserAction = async (id: string): Promise<User> => {
+  const user: User | undefined = await db.query.users.findFirst({
+    where: (users, { eq }) => eq(users.id, id),
+  });
+  if (!user) throw new Error("User not found");
+  return user;
 };
 
 export const addFriendAction = async (

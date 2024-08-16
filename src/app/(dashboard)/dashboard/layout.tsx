@@ -8,9 +8,15 @@ import { Icon, Icons } from "@/components/Icons";
 import { SidebarChatList } from "@/components/SidebarChatList";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type User } from "@/lib/db/schema";
+import { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Your dashboard",
+};
 
 interface SidebarNavProps {
   id: number;

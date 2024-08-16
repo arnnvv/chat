@@ -22,17 +22,30 @@ export const FriendRequestSidebarOption = ({
   };
 
   useEffect((): (() => void) => {
+    const addedFriendHandler = (): void => {
+      setUnsceenReq((prev: number): number => prev - 1);
+    };
+
     pusherClient.subscribe(
       toPusherKey(`user:${sessionId}:incoming_friend_request`),
     );
 
+    pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`));
+
     pusherClient.bind(`incoming_friend_request`, friendReqHandler);
+
+    pusherClient.bind("new_friend", addedFriendHandler);
 
     return () => {
       pusherClient.unsubscribe(
         toPusherKey(`user:${sessionId}:incoming_friend_request`),
       );
+
+      pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:friends`));
+
       pusherClient.unbind(`incoming_friend_request`, friendReqHandler);
+
+      pusherClient.unbind("new_friend", addedFriendHandler);
     };
   }, [sessionId]);
 
