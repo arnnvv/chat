@@ -274,6 +274,7 @@ export const acceptFriendRequest = async (
         and(
           eq(friendRequests.requesterId, friendRequestId),
           eq(friendRequests.recipientId, sessionId),
+          eq(friendRequests.status, "pending"),
         ),
       );
 
