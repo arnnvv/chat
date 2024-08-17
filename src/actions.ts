@@ -232,7 +232,6 @@ export const addFriendAction = async (
       const errors = e.issues.map((issue: ZodIssue): string => issue.message);
       return { error: errors.join(", ") };
     }
-    console.error(e);
     return { error: "unexpected error check Server logs" };
   }
 };

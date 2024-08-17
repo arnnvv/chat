@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { Message, messages, User } from "@/lib/db/schema";
 import { getFriends } from "@/lib/getFriends";
 import { chatHrefConstructor } from "@/lib/utils";
-import { and, eq, or } from "drizzle-orm";
+import { and, desc, eq, or } from "drizzle-orm";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -19,10 +19,9 @@ export default async function Pager(): Promise<JSX.Element> {
 
   const friends: User[] = await getFriends(user.id);
 
-  const friendsWithLastMsg: FriendWithLastMsg[] = [];
-  await Promise.all(
+  const friendsWithLastMsg: FriendWithLastMsg[] = await Promise.all(
     friends.map(async (friend: User): Promise<FriendWithLastMsg> => {
-      const last = await db
+      const last: Message[] | undefined = await db
         .select()
         .from(messages)
         .where(
@@ -37,7 +36,18 @@ export default async function Pager(): Promise<JSX.Element> {
             ),
           ),
         )
-        .limit(1);
+        .orderBy(desc(messages.createdAt));
+
+      if (!last) {
+        const lastMessage: Message = {
+          id: "",
+          senderId: "",
+          recipientId: "",
+          content: " ",
+          createdAt: new Date(),
+        };
+        return { ...friend, lastMessage };
+      }
       const lastMessage = last[0];
       return { ...friend, lastMessage };
     }),
