@@ -38,18 +38,18 @@ export default async function Pager(): Promise<JSX.Element> {
         )
         .orderBy(desc(messages.createdAt));
 
-      if (!last) {
-        const lastMessage: Message = {
-          id: "",
-          senderId: "",
-          recipientId: "",
-          content: " ",
-          createdAt: new Date(),
+      if (!last[0])
+        return {
+          ...friend,
+          lastMessage: {
+            id: "",
+            senderId: "",
+            recipientId: "",
+            content: " ",
+            createdAt: new Date(),
+          },
         };
-        return { ...friend, lastMessage };
-      }
-      const lastMessage = last[0];
-      return { ...friend, lastMessage };
+      return { ...friend, lastMessage: last[0] };
     }),
   );
 
