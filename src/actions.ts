@@ -17,10 +17,11 @@ import { redirect } from "next/navigation";
 import { eq, and, or } from "drizzle-orm";
 import { ZodError, ZodIssue } from "zod";
 import { cache } from "react";
-import { validateEmail, validateMessages } from "./lib/validate";
+import { validateEmail } from "./lib/validate";
 import { pusherServer } from "./lib/pusher";
 import { chatHrefConstructor, toPusherKey } from "./lib/utils";
 import { ActionResult } from "./components/FormComponent";
+import { resolveIdstoUsers } from "./lib/resolveIdsToUsers";
 
 export const validateRequest = cache(
   async (): Promise<
@@ -236,28 +237,6 @@ export const addFriendAction = async (
   }
 };
 
-export const getFriendRequestsAction = async (
-  id: string,
-): Promise<
-  | { data: FriendRequest[]; error?: undefined }
-  | { data?: undefined; error: string }
-> => {
-  const { user } = await validateRequest();
-  if (!user) return { error: "not logged in" };
-  try {
-    const pendingRequests: FriendRequest[] =
-      await db.query.friendRequests.findMany({
-        where: (requests, { and, eq }) =>
-          and(eq(requests.recipientId, id), eq(requests.status, "pending")),
-      });
-
-    return { data: pendingRequests };
-  } catch (e) {
-    console.error(`Get pending friend requests error: ${e}`);
-    throw new Error(`Get pending friend requests error: ${e}`);
-  }
-};
-
 export const acceptFriendRequest = async (
   friendRequestId: string,
   sessionId: string,
@@ -277,7 +256,7 @@ export const acceptFriendRequest = async (
       });
     if (!friendRequest) return { error: "Friend Request not found" };
 
-    const [friendRequester, user] = await resolveIdstoUserAction([
+    const [friendRequester, user] = await resolveIdstoUsers([
       friendRequestId,
       sessionId,
     ]);
@@ -345,46 +324,6 @@ export const rejectFriendRequest = async (
   }
 };
 
-export const resolveIdstoUserAction = async (
-  ids: string[],
-): Promise<User[]> => {
-  let users: User[] = [];
-  for (const id of ids) {
-    const user = (await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, id),
-    })) as User | undefined;
-    if (user) users.push(user);
-  }
-  return users;
-};
-
-export const getFriendsAction = async (id: string): Promise<User[]> => {
-  try {
-    const friendships: FriendRequest[] = await db.query.friendRequests.findMany(
-      {
-        where: (requests, { and, or }) =>
-          and(
-            or(eq(requests.requesterId, id), eq(requests.recipientId, id)),
-            eq(requests.status, "accepted"),
-          ),
-      },
-    );
-
-    const friendIds: string[] = friendships.map(
-      (friendship: FriendRequest): string =>
-        friendship.requesterId === id
-          ? friendship.recipientId
-          : friendship.requesterId,
-    );
-
-    const friends: User[] = await resolveIdstoUserAction(friendIds);
-
-    return friends;
-  } catch (e) {
-    throw new Error(`Failed to fetch friends ${e}`);
-  }
-};
-
 export const sendMessageAction = async ({
   input,
   sender,
@@ -442,65 +381,4 @@ export const sendMessageAction = async ({
   } catch (e) {
     return { error: `${e}` };
   }
-};
-
-export const getChatMessagesAction = async (
-  user: Omit<User, "password">,
-  chatPartner: User,
-): Promise<Message[]> => {
-  try {
-    if (!user.id || !chatPartner.id) throw new Error("Invalid chat id");
-    const chatMessages: Message[] | undefined =
-      (await db.query.messages.findMany({
-        where: or(
-          and(
-            eq(messages.recipientId, chatPartner.id),
-            eq(messages.senderId, user.id),
-          ),
-          and(
-            eq(messages.recipientId, user.id),
-            eq(messages.senderId, chatPartner.id),
-          ),
-        ),
-        orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-      })) as Message[] | undefined;
-    if (!chatMessages) throw new Error("Chat messages not found");
-    const reversedChatMessages: Message[] = chatMessages.reverse();
-    if (!validateMessages(reversedChatMessages))
-      throw new Error("Invalid messages");
-    return chatMessages;
-  } catch (e) {
-    throw new Error(`Failed to fetch chat messages ${e}`);
-  }
-};
-
-export const getLastMessageAction = async (
-  user: Omit<User, "password">,
-  friend: User,
-): Promise<Message> => {
-  const last: Message[] = await db
-    .select()
-    .from(messages)
-    .where(
-      or(
-        and(
-          eq(messages.senderId, user.id),
-          eq(messages.recipientId, friend.id),
-        ),
-        and(
-          eq(messages.recipientId, user.id),
-          eq(messages.senderId, friend.id),
-        ),
-      ),
-    )
-    .limit(1);
-  console.log(last[0]);
-
-  return {
-    id: "",
-    senderId: "",
-    recipientId: "",
-    content: "",
-    createdAt: new Date(),
-  };
 };

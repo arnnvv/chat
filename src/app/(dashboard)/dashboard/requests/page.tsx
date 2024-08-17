@@ -1,23 +1,18 @@
-import {
-  getFriendRequestsAction,
-  resolveIdstoUserAction,
-  validateRequest,
-} from "@/actions";
+import { validateRequest } from "@/actions";
 import { FriendRequests } from "@/components/FriendRequests";
 import { FriendRequest, User } from "@/lib/db/schema";
+import { getFriendRequests } from "@/lib/getFriendRequests";
+import { resolveIdstoUsers } from "@/lib/resolveIdsToUsers";
 import { redirect } from "next/navigation";
 
 export default async function page(): Promise<JSX.Element> {
   const { user } = await validateRequest();
   if (!user) return redirect("/login");
-  const incoming_friend_requests = await getFriendRequestsAction(user.id);
-  if (!incoming_friend_requests.data)
-    return <div>{incoming_friend_requests.error}</div>;
-  const ids: string[] = incoming_friend_requests.data.map(
+  const incoming_friend_requests = await getFriendRequests(user.id);
+  const ids: string[] = incoming_friend_requests.map(
     (req: FriendRequest): string => req.requesterId,
   );
-
-  const users: User[] = await resolveIdstoUserAction(ids);
+  const users: User[] = await resolveIdstoUsers(ids);
 
   const incommingFriendReqUsers: Omit<User, "number" | "password">[] =
     users.map((user: User): Omit<User, "number" | "password"> => {

@@ -1,13 +1,11 @@
-import {
-  getFriendRequestsAction,
-  getFriendsAction,
-  validateRequest,
-} from "@/actions";
+import { validateRequest } from "@/actions";
 import { FriendRequestSidebarOption } from "@/components/FriendRequestSidebarOption";
 import { Icon, Icons } from "@/components/Icons";
 import { SidebarChatList } from "@/components/SidebarChatList";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { type User } from "@/lib/db/schema";
+import { FriendRequest, type User } from "@/lib/db/schema";
+import { getFriendRequests } from "@/lib/getFriendRequests";
+import { getFriends } from "@/lib/getFriends";
 import { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -42,8 +40,9 @@ export default async function page({
   const { user } = await validateRequest();
   if (!user) return redirect("/login");
 
-  const friends: User[] = await getFriendsAction(user.id);
-  const unsceenReqCount = await getFriendRequestsAction(user.id);
+  const friends: User[] = await getFriends(user.id);
+  const unsceenReqCount: FriendRequest[] = await getFriendRequests(user.id);
+
   return (
     <div className="w-full flex h-screen">
       <div className="flex h-full w-full max-w-xs grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6">
@@ -87,7 +86,7 @@ export default async function page({
                   <FriendRequestSidebarOption
                     sessionId={user.id}
                     initialUnseenFriendRequests={
-                      unsceenReqCount.data ? unsceenReqCount.data.length : 0
+                      unsceenReqCount ? unsceenReqCount.length : 0
                     }
                   ></FriendRequestSidebarOption>
                 </li>

@@ -1,38 +1,48 @@
-import {
-  getFriendsAction,
-  getLastMessageAction,
-  validateRequest,
-} from "@/actions";
+import { validateRequest } from "@/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Message, User } from "@/lib/db/schema";
+import { db } from "@/lib/db";
+import { Message, messages, User } from "@/lib/db/schema";
+import { getFriends } from "@/lib/getFriends";
 import { chatHrefConstructor } from "@/lib/utils";
+import { and, eq, or } from "drizzle-orm";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+interface FriendWithLastMsg extends User {
+  lastMessage: Message;
+}
 
 export default async function Pager(): Promise<JSX.Element> {
   const { user } = await validateRequest();
   if (!user) return redirect("/login");
 
-  const friends: User[] = await getFriendsAction(user.id);
+  const friends: User[] = await getFriends(user.id);
 
-  const friendsWithLastMsg = await Promise.all(
-    friends.map(
-      async (
-        friend: User,
-      ): Promise<{
-        lastMessage: Message;
-        number: string | null;
-        id: string;
-        name: string;
-        email: string;
-        password: string;
-      }> => {
-        const lastMessage: Message = await getLastMessageAction(user, friend);
-        return { ...friend, lastMessage };
-      },
-    ),
+  const friendsWithLastMsg: FriendWithLastMsg[] = [];
+  await Promise.all(
+    friends.map(async (friend: User): Promise<FriendWithLastMsg> => {
+      const last = await db
+        .select()
+        .from(messages)
+        .where(
+          or(
+            and(
+              eq(messages.senderId, user.id),
+              eq(messages.recipientId, friend.id),
+            ),
+            and(
+              eq(messages.recipientId, user.id),
+              eq(messages.senderId, friend.id),
+            ),
+          ),
+        )
+        .limit(1);
+      const lastMessage = last[0];
+      return { ...friend, lastMessage };
+    }),
   );
+
   return (
     <div className="container py-12">
       <h1 className="font-bold text-5xl mb-8">Recent chats</h1>
@@ -40,14 +50,7 @@ export default async function Pager(): Promise<JSX.Element> {
         <p className="text-sm text-zinc-500">Nothing to show here...</p>
       ) : (
         friendsWithLastMsg.map(
-          (friend: {
-            lastMessage: Message;
-            number: string | null;
-            id: string;
-            name: string;
-            email: string;
-            password: string;
-          }): JSX.Element => (
+          (friend: FriendWithLastMsg): JSX.Element => (
             <div
               key={friend.id}
               className="relative bg-zinc-50 border border-zinc-200 p-3 rounded-md"
@@ -81,7 +84,9 @@ export default async function Pager(): Promise<JSX.Element> {
                   <h4 className="text-lg font-semibold">{friend.name}</h4>
                   <p className="mt-1 max-w-md">
                     <span className="text-zinc-400">
-                      {friend.lastMessage.senderId === user.id ? "You: " : ""}
+                      {friend.lastMessage.senderId === user.id
+                        ? "You: "
+                        : `${friend.name}: `}
                     </span>
                     {friend.lastMessage.content}
                   </p>
