@@ -1,10 +1,14 @@
 import "./globals.css";
+import "@uploadthing/react/styles.css";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { Appbar } from "@/components/Appbar";
+import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
+import { extractRouterConfig } from "uploadthing/server";
+import { ourFileRouter } from "./api/uploadthing/core";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -29,6 +33,7 @@ export default function RootLayout({
           fontSans.variable,
         )}
       >
+        <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         <Appbar />
         {children}
         <Toaster richColors={true} />

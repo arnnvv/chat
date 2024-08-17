@@ -21,24 +21,26 @@ export default async function Pager(): Promise<JSX.Element> {
 
   const friendsWithLastMsg: FriendWithLastMsg[] = await Promise.all(
     friends.map(async (friend: User): Promise<FriendWithLastMsg> => {
-      const last: Message[] | undefined = await db
-        .select()
-        .from(messages)
-        .where(
-          or(
-            and(
-              eq(messages.senderId, user.id),
-              eq(messages.recipientId, friend.id),
+      const lastMessage: Message = (
+        await db
+          .select()
+          .from(messages)
+          .where(
+            or(
+              and(
+                eq(messages.senderId, user.id),
+                eq(messages.recipientId, friend.id),
+              ),
+              and(
+                eq(messages.recipientId, user.id),
+                eq(messages.senderId, friend.id),
+              ),
             ),
-            and(
-              eq(messages.recipientId, user.id),
-              eq(messages.senderId, friend.id),
-            ),
-          ),
-        )
-        .orderBy(desc(messages.createdAt));
+          )
+          .orderBy(desc(messages.createdAt))
+      )[0];
 
-      if (!last[0])
+      if (!lastMessage)
         return {
           ...friend,
           lastMessage: {
@@ -49,7 +51,7 @@ export default async function Pager(): Promise<JSX.Element> {
             createdAt: new Date(),
           },
         };
-      return { ...friend, lastMessage: last[0] };
+      return { ...friend, lastMessage };
     }),
   );
 
