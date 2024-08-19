@@ -6,13 +6,16 @@ import { db } from "@/lib/db";
 import { Message, messages, User, users } from "@/lib/db/schema";
 import { validateMessages } from "@/lib/validate";
 import { and, eq, or } from "drizzle-orm";
+import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 export const generateMetadata = async ({
   params,
 }: {
-  params: { chatId: string };
-}): Promise<{ title: string }> => {
+  params: {
+    chatId: string;
+  };
+}): Promise<Metadata> => {
   const { user } = await validateRequest();
   if (!user) return redirect("/login");
   const [userId1, userId2] = params.chatId.split("--");
@@ -20,7 +23,11 @@ export const generateMetadata = async ({
   const chatPartner: User | undefined = await db.query.users.findFirst({
     where: (users, { eq }) => eq(users.id, chatPartnerId),
   });
-  return { title: `Chatting with ${chatPartner?.name}` };
+
+  return {
+    title: "Chat Page",
+    description: `Chat with ${chatPartner?.name || chatPartner?.email}`,
+  };
 };
 
 export default async function l({

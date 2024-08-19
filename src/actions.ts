@@ -9,7 +9,7 @@ import {
   users,
   type User,
   messages,
-  Message,
+  type Message,
 } from "./lib/db/schema";
 import lucia from "./lib/auth";
 import { cookies } from "next/headers";
@@ -155,14 +155,6 @@ export const signOutAction = async (): Promise<ActionResult> => {
     sessionCookie.attributes,
   );
   return redirect("/login");
-};
-
-export const idToUserAction = async (id: string): Promise<User> => {
-  const user: User | undefined = await db.query.users.findFirst({
-    where: (users, { eq }) => eq(users.id, id),
-  });
-  if (!user) throw new Error("User not found");
-  return user;
 };
 
 export const addFriendAction = async (

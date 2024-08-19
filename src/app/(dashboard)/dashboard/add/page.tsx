@@ -3,7 +3,13 @@ import { FormComponent } from "@/components/FormComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: "Add friend",
+  description: "Add a friend to your account",
+};
 
 export default async function Page(): Promise<JSX.Element> {
   const { user } = await validateRequest();

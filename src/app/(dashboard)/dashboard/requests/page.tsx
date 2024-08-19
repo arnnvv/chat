@@ -8,7 +8,9 @@ import { redirect } from "next/navigation";
 export default async function page(): Promise<JSX.Element> {
   const { user } = await validateRequest();
   if (!user) return redirect("/login");
-  const incoming_friend_requests = await getFriendRequests(user.id);
+  const incoming_friend_requests: FriendRequest[] = await getFriendRequests(
+    user.id,
+  );
   const ids: string[] = incoming_friend_requests.map(
     (req: FriendRequest): string => req.requesterId,
   );
