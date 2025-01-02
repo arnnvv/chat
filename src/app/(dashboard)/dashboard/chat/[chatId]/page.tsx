@@ -1,4 +1,4 @@
-import { validateRequest } from "@/actions";
+import { getCurrentSession } from "@/actions";
 import { ChatInput } from "@/components/ChatInput";
 import { MessagesComp } from "@/components/MessagesComp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +8,7 @@ import { validateMessages } from "@/lib/validate";
 import { and, eq, or } from "drizzle-orm";
 import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { JSX } from "react";
 
 export const generateMetadata = async ({
   params,
@@ -16,7 +17,7 @@ export const generateMetadata = async ({
     chatId: string;
   };
 }): Promise<Metadata> => {
-  const { user } = await validateRequest();
+  const { user } = await getCurrentSession();
   if (!user) return redirect("/login");
   const [userId1, userId2] = params.chatId.split("--");
   const chatPartnerId = user.id === userId1 ? userId2 : userId1;
@@ -37,7 +38,7 @@ export default async function l({
 }): Promise<JSX.Element> {
   let initialMessages: Message[] = [];
   const { chatId } = params;
-  const { user } = await validateRequest();
+  const { user } = await getCurrentSession();
   if (!user) return redirect("/login");
   const [userId1, userId2] = chatId.split("--");
   if (user.id !== userId1 && user.id !== userId2) notFound();

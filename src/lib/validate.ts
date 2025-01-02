@@ -1,62 +1,56 @@
-import {
-  SafeParseReturnType,
-  ZodArray,
-  ZodDate,
-  ZodObject,
-  ZodString,
-  z,
-} from "zod";
 import { Message } from "./db/schema";
 
-type MessageSchema = ZodObject<{
-  id: ZodString;
-  senderId: ZodString;
-  recipientId: ZodString;
-  createdAt: ZodDate;
-  content: ZodString;
-}>;
-
-export const emailSchema: ZodObject<{
-  email: ZodString;
-}> = z.object({
-  email: z
-    .string({
-      invalid_type_error: "invalid email",
-    })
-    .email(),
-});
-
-export const messageScheema: MessageSchema = z.object({
-  id: z.string(),
-  senderId: z.string(),
-  recipientId: z.string(),
-  createdAt: z.date(),
-  content: z.string(),
-});
-
-export const messagesScheema: ZodArray<MessageSchema> = z.array(messageScheema);
-
-export type Email = z.infer<typeof emailSchema>;
-
-export const validateEmail: (data: Email) => boolean = (
-  data: Email,
-): boolean => {
-  const result: SafeParseReturnType<Email, Email> = emailSchema.safeParse(data);
-  return result.success;
+type Email = {
+  email: string;
 };
 
-export const validateMessage: (data: Message) => boolean = (
-  data: Message,
-): boolean => {
-  const result: SafeParseReturnType<Message, Message> =
-    messageScheema.safeParse(data);
-  return result.success;
+export const validateEmail = (data: Email): boolean => {
+  if (typeof data.email !== "string") {
+    console.error("Invalid type: email must be a string.");
+    return false;
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(data.email)) {
+    console.error("Invalid email format.");
+    return false;
+  }
+  return true;
 };
 
-export const validateMessages: (data: Message[]) => boolean = (
-  data: Message[],
-): boolean => {
-  const result: SafeParseReturnType<Message[], Message[]> =
-    messagesScheema.safeParse(data);
-  return result.success;
+export const validateMessage = (data: Message): boolean => {
+  if (typeof data.id !== "string") {
+    console.error("Invalid type: id must be a string.");
+    return false;
+  }
+  if (typeof data.senderId !== "string") {
+    console.error("Invalid type: senderId must be a string.");
+    return false;
+  }
+  if (typeof data.recipientId !== "string") {
+    console.error("Invalid type: recipientId must be a string.");
+    return false;
+  }
+  if (!(data.createdAt instanceof Date) || isNaN(data.createdAt.getTime())) {
+    console.error("Invalid type: createdAt must be a valid Date.");
+    return false;
+  }
+  if (typeof data.content !== "string") {
+    console.error("Invalid type: content must be a string.");
+    return false;
+  }
+  return true;
+};
+
+export const validateMessages = (data: Message[]): boolean => {
+  if (!Array.isArray(data)) {
+    console.error("Invalid type: data must be an array.");
+    return false;
+  }
+  for (const message of data) {
+    if (!validateMessage(message)) {
+      console.error("Invalid message in array.");
+      return false;
+    }
+  }
+  return true;
 };

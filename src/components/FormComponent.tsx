@@ -1,11 +1,11 @@
 "use client";
 
-import { type ReactNode, useActionState, useEffect } from "react";
+import { JSX, type ReactNode, useActionState, useEffect } from "react";
 import { toast } from "sonner";
 
 export interface ActionResult {
-  error?: string | null;
-  message?: string | null;
+  success: boolean;
+  message: string;
 }
 
 export const FormComponent = ({

@@ -1,6 +1,9 @@
 import {
+  boolean,
+  integer,
   pgEnum,
   pgTableCreator,
+  serial,
   text,
   timestamp,
   varchar,
@@ -17,19 +20,20 @@ export const friendReqStatusEnum = pgEnum("friend_req_status", [
 ]);
 
 export const users = createTable("users", {
-  id: varchar("id", { length: 21 }).primaryKey(),
-  name: varchar("name").notNull(),
+  id: serial("id").primaryKey(),
+  username: varchar("username").unique().notNull(),
   email: varchar("email", { length: 255 }).unique().notNull(),
-  number: varchar("number").unique(),
-  password: varchar("password", { length: 255 }).notNull(),
+  password_hash: varchar("password_hash").notNull(),
+  verified: boolean("verified").notNull().default(false),
+  picture: text("picture"),
 });
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
 export const sessions = createTable("sessions", {
-  id: varchar("id", { length: 255 }).primaryKey(),
-  userId: varchar("user_id", { length: 21 })
+  id: text("id").primaryKey(),
+  userId: integer("user_id")
     .notNull()
     .references(() => users.id),
   expiresAt: timestamp("expires_at", {
@@ -38,14 +42,31 @@ export const sessions = createTable("sessions", {
   }).notNull(),
 });
 
+export type Session = typeof sessions.$inferSelect;
+
+export const emailVerificationRequests = createTable(
+  "email_verification_request",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id),
+    email: text("email").notNull(),
+    code: text("code").notNull(),
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "date",
+    }).notNull(),
+  },
+);
+
+export type EmailVerificationRequest =
+  typeof emailVerificationRequests.$inferSelect;
+
 export const friendRequests = createTable("friend_requests", {
-  id: varchar("id", { length: 255 }).primaryKey(),
-  requesterId: varchar("requester_id", { length: 21 })
-    .notNull()
-    .references(() => users.id),
-  recipientId: varchar("recipient_id", { length: 21 })
-    .notNull()
-    .references(() => users.id),
+  id: serial("id").primaryKey(),
+  requesterId: integer("requester_id").references(() => users.id),
+  recipientId: integer("recipient_id").references(() => users.id),
   status: friendReqStatusEnum("status").notNull(),
   createdAt: timestamp("created_at", {
     withTimezone: true,
@@ -65,13 +86,9 @@ export type FriendRequest = typeof friendRequests.$inferSelect;
 export type NewFriendRequest = typeof friendRequests.$inferInsert;
 
 export const messages = createTable("messages", {
-  id: varchar("id", { length: 255 }).primaryKey(),
-  senderId: varchar("sender_id", { length: 21 })
-    .notNull()
-    .references(() => users.id),
-  recipientId: varchar("recipient_id", { length: 21 })
-    .notNull()
-    .references(() => users.id),
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").references(() => users.id),
+  recipientId: integer("recipient_id").references(() => users.id),
   content: text("content").notNull(),
   createdAt: timestamp("created_at", {
     withTimezone: true,
@@ -80,3 +97,4 @@ export const messages = createTable("messages", {
 });
 
 export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
