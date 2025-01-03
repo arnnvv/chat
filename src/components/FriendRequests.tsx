@@ -1,41 +1,42 @@
 "use client";
 
 import { acceptFriendRequest, rejectFriendRequest } from "@/actions";
-import { type User } from "@/lib/db/schema";
 import { pusherClient } from "@/lib/pusher";
 import { toPusherKey } from "@/lib/utils";
 import { Check, UserPlus, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { JSX, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export const FriendRequests = ({
   incommingFriendReqs,
   sessionId,
 }: {
-  incommingFriendReqs: Omit<User, "number" | "password">[];
-  sessionId: string;
+  incommingFriendReqs: { id: number; username: string; email: string }[];
+  sessionId: number;
 }): JSX.Element => {
   const [friendReqs, setFriendReqs] =
-    useState<Omit<User, "number" | "password">[]>(incommingFriendReqs);
+    useState<{ id: number; username: string; email: string }[]>(
+      incommingFriendReqs,
+    );
 
   const friendReqHandler = ({
     senderId,
     senderEmail,
     senderName,
   }: {
-    senderId: string;
+    senderId: number;
     senderEmail: string;
     senderName: string;
   }): void => {
     setFriendReqs(
       (
-        prev: Omit<User, "number" | "password">[],
-      ): Omit<User, "number" | "password">[] => [
+        prev: { id: number; username: string; email: string }[],
+      ): { id: number; username: string; email: string }[] => [
         ...prev,
         {
           id: senderId,
           email: senderEmail,
-          name: senderName,
+          username: senderName,
         },
       ],
     );
@@ -62,11 +63,11 @@ export const FriendRequests = ({
         <p className="text-sm italic text-zinc-500">No friend requests..</p>
       ) : (
         friendReqs.map(
-          (friendReq: Omit<User, "number" | "password">): JSX.Element => (
+          (friendReq): JSX.Element => (
             <div key={friendReq.id} className="flex gap-4 items-center">
               <UserPlus className="text-black" />
               <p className="font-medium text-lg">
-                {friendReq.name ? friendReq.name : friendReq.email}
+                {friendReq.username ? friendReq.username : friendReq.email}
               </p>
               <button
                 onClick={async (): Promise<void> => {

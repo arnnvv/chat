@@ -1,4 +1,4 @@
-import { validateRequest } from "@/actions";
+import { getCurrentSession } from "@/actions";
 import { FriendRequestSidebarOption } from "@/components/FriendRequestSidebarOption";
 import { Icon, Icons } from "@/components/Icons";
 import { SidebarChatList } from "@/components/SidebarChatList";
@@ -9,7 +9,7 @@ import { getFriends } from "@/lib/getFriends";
 import { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import type { ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -37,7 +37,7 @@ export default async function page({
 }: {
   children: ReactNode;
 }): Promise<JSX.Element> {
-  const { user } = await validateRequest();
+  const { user } = await getCurrentSession();
   if (!user) return redirect("/login");
 
   const friends: User[] = await getFriends(user.id);
@@ -102,14 +102,14 @@ export default async function page({
                       alt="@shadcn"
                     />
                     <AvatarFallback>
-                      {user.name ? user.name[0] : user.email[0]}
+                      {user.username ? user.username[0] : user.email[0]}
                     </AvatarFallback>
                   </Avatar>
                 </div>
 
                 <span className="sr-only">Your profile</span>
                 <div className="flex flex-col">
-                  <span aria-hidden="true">{user.name}</span>
+                  <span aria-hidden="true">{user.username}</span>
                   <span className="text-xs text-zinc-400" aria-hidden="true">
                     {user.email}
                   </span>

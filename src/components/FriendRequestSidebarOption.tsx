@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { JSX, useEffect, useState } from "react";
 import { pusherClient } from "@/lib/pusher";
 import { toPusherKey } from "@/lib/utils";
 
@@ -10,7 +10,7 @@ export const FriendRequestSidebarOption = ({
   sessionId,
   initialUnseenFriendRequests,
 }: {
-  sessionId: string;
+  sessionId: number;
   initialUnseenFriendRequests: number;
 }): JSX.Element => {
   const [unsceenReq, setUnsceenReq] = useState<number>(

@@ -1,10 +1,11 @@
-import { addFriendAction, validateRequest } from "@/actions";
+import { addFriendAction, getCurrentSession } from "@/actions";
 import { FormComponent } from "@/components/FormComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { JSX } from "react";
 
 export const metadata: Metadata = {
   title: "Add friend",
@@ -12,8 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default async function Page(): Promise<JSX.Element> {
-  const { user } = await validateRequest();
+  const { user } = await getCurrentSession();
   if (!user) return redirect("/login");
+
   return (
     <FormComponent action={addFriendAction}>
       <main className="pt-8">

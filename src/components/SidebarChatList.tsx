@@ -5,7 +5,7 @@ import type { Message, User } from "@/lib/db/schema";
 import { pusherClient } from "@/lib/pusher";
 import { chatHrefConstructor, toPusherKey } from "@/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { JSX, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CustomToast } from "./CustomToast";
 
@@ -17,7 +17,7 @@ export const SidebarChatList = ({
   sessionId,
   friends,
 }: {
-  sessionId: string;
+  sessionId: number;
   friends: User[];
 }): JSX.Element => {
   const [unseenMessages, setUnseenMessages] = useState<Message[]>([]);
@@ -78,7 +78,8 @@ export const SidebarChatList = ({
     if (pathname?.includes("chat"))
       setUnseenMessages((prev: Message[]): Message[] =>
         prev.filter(
-          (msg: Message): boolean => !pathname?.includes(msg.senderId),
+          (msg: Message): boolean =>
+            !pathname?.includes(msg.senderId.toString()),
         ),
       );
   }, [pathname]);
@@ -104,10 +105,10 @@ export const SidebarChatList = ({
                   alt="@shadcn"
                 />
                 <AvatarFallback>
-                  {friend.name ? friend.name[0] : friend.email[0]}
+                  {friend.username ? friend.username[0] : friend.email[0]}
                 </AvatarFallback>
               </Avatar>
-              {friend.name ? friend.name : friend.email}{" "}
+              {friend.username ? friend.username : friend.email}{" "}
               {unseenMsgCount > 0 && (
                 <div className="border-r-cyan-400 font-medium text-xs w-4 h-4 rounded-full flex justify-center items-center bg-cyan-400 text-white">
                   {unseenMsgCount}

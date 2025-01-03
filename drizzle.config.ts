@@ -8,5 +8,5 @@ export default {
     url: getDB(),
   },
   tablesFilter: ["chat_"],
-  out: "./src/lib/db/drizzle",
+  out: "./drizzle",
 } satisfies Config;

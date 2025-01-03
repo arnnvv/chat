@@ -3,7 +3,7 @@ import { db } from "./db";
 import { FriendRequest, User } from "./db/schema";
 import { resolveIdstoUsers } from "./resolveIdsToUsers";
 
-export const getFriends = async (id: string): Promise<User[]> => {
+export const getFriends = async (id: number): Promise<User[]> => {
   const friendships: FriendRequest[] = await db.query.friendRequests.findMany({
     where: (requests, { and, or }) =>
       and(
@@ -12,11 +12,10 @@ export const getFriends = async (id: string): Promise<User[]> => {
       ),
   });
 
-  const friendIds: string[] = friendships.map(
-    (friendship: FriendRequest): string =>
-      friendship.requesterId === id
-        ? friendship.recipientId
-        : friendship.requesterId,
+  const friendIds: number[] = friendships.map((friendship: FriendRequest) =>
+    friendship.requesterId === id
+      ? friendship.recipientId
+      : friendship.requesterId,
   );
 
   const friends: User[] = await resolveIdstoUsers(friendIds);

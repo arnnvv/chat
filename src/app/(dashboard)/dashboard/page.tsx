@@ -1,4 +1,4 @@
-import { validateRequest } from "@/actions";
+import { getCurrentSession } from "@/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/db";
 import { Message, messages, User } from "@/lib/db/schema";
@@ -8,13 +8,14 @@ import { and, desc, eq, or } from "drizzle-orm";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { JSX } from "react";
 
 interface FriendWithLastMsg extends User {
   lastMessage: Message;
 }
 
 export default async function Pager(): Promise<JSX.Element> {
-  const { user } = await validateRequest();
+  const { user } = await getCurrentSession();
   if (!user) return redirect("/login");
 
   const friends: User[] = await getFriends(user.id);
@@ -44,9 +45,9 @@ export default async function Pager(): Promise<JSX.Element> {
         return {
           ...friend,
           lastMessage: {
-            id: "",
-            senderId: "",
-            recipientId: "",
+            id: 0,
+            senderId: 0,
+            recipientId: 0,
             content: " ",
             createdAt: new Date(),
           },
@@ -86,19 +87,19 @@ export default async function Pager(): Promise<JSX.Element> {
                         alt="@shadcn"
                       />
                       <AvatarFallback>
-                        {friend.name ? friend.name[0] : friend.email[0]}
+                        {friend.username ? friend.username[0] : friend.email[0]}
                       </AvatarFallback>
                     </Avatar>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="text-lg font-semibold">{friend.name}</h4>
+                  <h4 className="text-lg font-semibold">{friend.username}</h4>
                   <p className="mt-1 max-w-md">
                     <span className="text-zinc-400">
                       {friend.lastMessage.senderId === user.id
                         ? "You: "
-                        : `${friend.name}: `}
+                        : `${friend.username}: `}
                     </span>
                     {friend.lastMessage.content}
                   </p>

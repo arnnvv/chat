@@ -10,14 +10,15 @@ import {
 } from "@radix-ui/react-avatar";
 import {
   ComponentPropsWithoutRef,
-  ElementRef,
+  ComponentRef,
   ForwardedRef,
   forwardRef,
+  JSX,
   RefAttributes,
 } from "react";
 
 export const Avatar = forwardRef<
-  ElementRef<typeof Root>,
+  ComponentRef<typeof Root>,
   ComponentPropsWithoutRef<typeof Root>
 >(
   (
@@ -40,7 +41,7 @@ export const Avatar = forwardRef<
 Avatar.displayName = Root.displayName;
 
 export const AvatarImage = forwardRef<
-  ElementRef<typeof Image>,
+  ComponentRef<typeof Image>,
   ComponentPropsWithoutRef<typeof Image>
 >(
   (
@@ -61,7 +62,7 @@ export const AvatarImage = forwardRef<
 AvatarImage.displayName = Image.displayName;
 
 export const AvatarFallback = forwardRef<
-  ElementRef<typeof Fallback>,
+  ComponentRef<typeof Fallback>,
   ComponentPropsWithoutRef<typeof Fallback>
 >(
   (

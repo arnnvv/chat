@@ -2,7 +2,7 @@
 
 import { Message, User } from "@/lib/db/schema";
 import { cn, toPusherKey } from "@/lib/utils";
-import { MutableRefObject, useEffect, useRef, useState } from "react";
+import { JSX, RefObject, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { pusherClient } from "@/lib/pusher";
@@ -16,11 +16,11 @@ export const MessagesComp = ({
 }: {
   chatId: string;
   chatPartner: User;
-  sessionId: string;
+  sessionId: number;
   sessionImg: string | null | undefined;
   initialMessages: Message[];
 }): JSX.Element => {
-  const scrollRef: MutableRefObject<HTMLDivElement | null> =
+  const scrollRef: RefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
 
@@ -75,8 +75,8 @@ export const MessagesComp = ({
                     alt="@shadcn"
                   />
                   <AvatarFallback>
-                    {chatPartner.name
-                      ? chatPartner.name[0]
+                    {chatPartner.username
+                      ? chatPartner.username[0]
                       : chatPartner.email[0]}
                   </AvatarFallback>
                 </Avatar>

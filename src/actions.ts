@@ -717,8 +717,8 @@ export const addFriendAction = async (
 };
 
 export const acceptFriendRequest = async (
-  friendRequestId: string,
-  sessionId: string,
+  friendRequestId: number,
+  sessionId: number,
 ): Promise<
   | { error: string; message?: undefined }
   | { message: string; error?: undefined }
@@ -770,8 +770,8 @@ export const acceptFriendRequest = async (
 };
 
 export const rejectFriendRequest = async (
-  friendRequestId: string,
-  sessionId: string,
+  friendRequestId: number,
+  sessionId: number,
 ): Promise<
   | { error: string; message?: undefined }
   | { message: string; error?: undefined }
@@ -850,7 +850,7 @@ export const sendMessageAction = async ({
         "new_message",
         {
           ...messageData,
-          senderName: sender.name,
+          senderName: sender.username,
         },
       ),
       db.insert(messages).values(messageData).returning(),

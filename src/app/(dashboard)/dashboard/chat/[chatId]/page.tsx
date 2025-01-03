@@ -13,13 +13,16 @@ import { JSX } from "react";
 export const generateMetadata = async ({
   params,
 }: {
-  params: {
+  params: Promise<{
     chatId: string;
-  };
+  }>;
 }): Promise<Metadata> => {
   const { user } = await getCurrentSession();
   if (!user) return redirect("/login");
-  const [userId1, userId2] = params.chatId.split("--");
+  const chatId = (await params).chatId;
+  const [userIdd1, userIdd2] = chatId.split("--");
+  const userId1 = Number(userIdd1);
+  const userId2 = Number(userIdd2);
   const chatPartnerId = user.id === userId1 ? userId2 : userId1;
   const chatPartner: User | undefined = await db.query.users.findFirst({
     where: (users, { eq }) => eq(users.id, chatPartnerId),
@@ -27,22 +30,26 @@ export const generateMetadata = async ({
 
   return {
     title: "Chat Page",
-    description: `Chat with ${chatPartner?.name || chatPartner?.email}`,
+    description: `Chat with ${chatPartner?.username || chatPartner?.email}`,
   };
 };
 
 export default async function l({
   params,
 }: {
-  params: { chatId: string };
+  params: Promise<{
+    chatId: string;
+  }>;
 }): Promise<JSX.Element> {
   let initialMessages: Message[] = [];
-  const { chatId } = params;
+  const { chatId } = await params;
   const { user } = await getCurrentSession();
   if (!user) return redirect("/login");
-  const [userId1, userId2] = chatId.split("--");
+  const [userIdd1, userIdd2] = chatId.split("--");
+  const userId1 = Number(userIdd1);
+  const userId2 = Number(userIdd2);
   if (user.id !== userId1 && user.id !== userId2) notFound();
-  const chatPartnerId: string = user.id === userId1 ? userId2 : userId1;
+  const chatPartnerId: number = user.id === userId1 ? userId2 : userId1;
 
   const chatPartner: User | undefined = await db.query.users.findFirst({
     where: eq(users.id, chatPartnerId),
@@ -87,8 +94,8 @@ export default async function l({
                   alt="@shadcn"
                 />
                 <AvatarFallback>
-                  {chatPartner.name
-                    ? chatPartner.name[0]
+                  {chatPartner.username
+                    ? chatPartner.username[0]
                     : chatPartner.email[0]}
                 </AvatarFallback>
               </Avatar>
@@ -98,7 +105,7 @@ export default async function l({
           <div className="flex flex-col leading-tight">
             <div className="text-xl flex items-center">
               <span className="text-gray-700 mr-3 font-semibold">
-                {chatPartner.name}
+                {chatPartner.username}
               </span>
             </div>
 

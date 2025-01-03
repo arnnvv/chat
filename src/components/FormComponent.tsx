@@ -1,11 +1,37 @@
 "use client";
 
-import { JSX, type ReactNode, useActionState, useEffect } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  ReactElement,
+  useState,
+  useTransition,
+  type JSX,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 
 export interface ActionResult {
   success: boolean;
   message: string;
+}
+
+const formControlTypes = [
+  "input",
+  "button",
+  "select",
+  "textarea",
+  "fieldset",
+] as const;
+
+function isFormControl(
+  element: ReactElement,
+): element is ReactElement<{ disabled?: boolean }> {
+  return (
+    typeof element.type === "string" &&
+    formControlTypes.includes(element.type as (typeof formControlTypes)[number])
+  );
 }
 
 export const FormComponent = ({
@@ -15,29 +41,68 @@ export const FormComponent = ({
   children: ReactNode;
   action: (prevState: any, formdata: FormData) => Promise<ActionResult>;
 }): JSX.Element => {
-  const [state, formAction] = useActionState(action, {
-    error: null,
+  const [isPending, startTransition] = useTransition();
+  const [, setFormState] = useState<ActionResult>({
+    success: false,
+    message: "",
   });
 
-  useEffect((): void => {
-    if (state.error)
-      toast.error(state.error, {
-        id: "1",
-        action: {
-          label: "Close",
-          onClick: (): string | number => toast.dismiss("1"),
-        },
-      });
+  const handleSubmit = async (formData: FormData) => {
+    startTransition(async () => {
+      try {
+        const result = await action(null, formData);
+        setFormState(result);
 
-    if (state.message)
-      toast.success(state.message, {
-        id: "2",
-        action: {
-          label: "Close",
-          onClick: (): string | number => toast.dismiss("2"),
-        },
-      });
-  }, [state.error, state.message]);
+        if (result.success) {
+          toast.success(result.message, {
+            id: "success-toast",
+            action: {
+              label: "Close",
+              onClick: () => toast.dismiss("success-toast"),
+            },
+          });
+        } else if (result.message) {
+          toast.error(result.message, {
+            id: "error-toast",
+            action: {
+              label: "Close",
+              onClick: () => toast.dismiss("error-toast"),
+            },
+          });
+        }
+      } catch {
+        toast.error("An unexpected error occurred", {
+          id: "error-toast",
+          action: {
+            label: "Close",
+            onClick: () => toast.dismiss("error-toast"),
+          },
+        });
+      }
+    });
+  };
 
-  return <form action={formAction}>{children}</form>;
+  const disabledChildren = Children.map(children, (child) => {
+    if (isValidElement(child) && isFormControl(child)) {
+      return cloneElement(child, { disabled: isPending });
+    }
+    return child;
+  });
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        handleSubmit(formData);
+      }}
+    >
+      {disabledChildren}
+      {isPending && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/50">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+      )}
+    </form>
+  );
 };

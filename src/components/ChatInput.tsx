@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { User } from "@/lib/db/schema";
 import {
   ChangeEvent,
+  JSX,
   KeyboardEvent,
-  LegacyRef,
-  MutableRefObject,
+  Ref,
+  RefObject,
   useRef,
   useState,
 } from "react";
@@ -21,7 +22,7 @@ export const ChatInput = ({
   sender: Omit<User, "password">;
   receiver: User;
 }): JSX.Element => {
-  const textareaRef: MutableRefObject<HTMLAreaElement | null> =
+  const textareaRef: RefObject<HTMLAreaElement | null> =
     useRef<HTMLAreaElement | null>(null);
 
   const [input, setInput] = useState<string>("");
@@ -71,7 +72,7 @@ export const ChatInput = ({
     <div className="border-t border-gray-200 px-4 pt-4 mb-2 sm:mb-0">
       <div className="relative flex-1 overflow-hidden rounded-lg shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-cyan-400">
         <ReactTextareaAutosize
-          ref={textareaRef as LegacyRef<HTMLTextAreaElement>}
+          ref={textareaRef as Ref<HTMLTextAreaElement>}
           onKeyDown={(e: KeyboardEvent<HTMLTextAreaElement>) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -83,7 +84,7 @@ export const ChatInput = ({
           onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
             setInput(e.target.value)
           }
-          placeholder={`Message ${receiver.name}`}
+          placeholder={`Message ${receiver.username}`}
           className="block w-full resize-none border-0 bg-transparent text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:py-1.5 sm:text-sm sm:leading-6"
         />
 

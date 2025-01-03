@@ -1,7 +1,7 @@
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-import { ButtonHTMLAttributes, ForwardedRef, forwardRef } from "react";
+import { ButtonHTMLAttributes, ForwardedRef, forwardRef, JSX } from "react";
 import { Loader2 } from "lucide-react";
 
 const buttonVariants = cva(

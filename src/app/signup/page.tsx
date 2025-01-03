@@ -10,11 +10,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { signUpAction, validateRequest } from "@/actions";
+import { getCurrentSession, signUpAction } from "@/actions";
 import { FormComponent } from "@/components/FormComponent";
+import { JSX } from "react";
 
 export default async function Page(): Promise<JSX.Element> {
-  const { user } = await validateRequest();
+  const { user } = await getCurrentSession();
   if (user) return redirect("/");
 
   return (

@@ -1,9 +1,11 @@
 import { FormComponent } from "./FormComponent";
 import { Button } from "@/components/ui/button";
-import { signOutAction, validateRequest } from "@/actions";
+import { getCurrentSession, signOutAction } from "@/actions";
+import { JSX } from "react";
 
 export const Appbar = async (): Promise<JSX.Element> => {
-  const { user } = await validateRequest();
+  const { user } = await getCurrentSession();
+
   return (
     <div className="flex justify-between border-b px-4">
       <div className="text-lg flex flex-col justify-center">CHAT</div>

@@ -65,8 +65,12 @@ export type EmailVerificationRequest =
 
 export const friendRequests = createTable("friend_requests", {
   id: serial("id").primaryKey(),
-  requesterId: integer("requester_id").references(() => users.id),
-  recipientId: integer("recipient_id").references(() => users.id),
+  requesterId: integer("requester_id")
+    .notNull()
+    .references(() => users.id),
+  recipientId: integer("recipient_id")
+    .notNull()
+    .references(() => users.id),
   status: friendReqStatusEnum("status").notNull(),
   createdAt: timestamp("created_at", {
     withTimezone: true,
@@ -87,8 +91,12 @@ export type NewFriendRequest = typeof friendRequests.$inferInsert;
 
 export const messages = createTable("messages", {
   id: serial("id").primaryKey(),
-  senderId: integer("sender_id").references(() => users.id),
-  recipientId: integer("recipient_id").references(() => users.id),
+  senderId: integer("sender_id")
+    .notNull()
+    .references(() => users.id),
+  recipientId: integer("recipient_id")
+    .notNull()
+    .references(() => users.id),
   content: text("content").notNull(),
   createdAt: timestamp("created_at", {
     withTimezone: true,

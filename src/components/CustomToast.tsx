@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { chatHrefConstructor, cn } from "@/lib/utils";
+import { JSX } from "react";
 import { toast } from "sonner";
 
 type ToastProps = {
@@ -7,8 +8,8 @@ type ToastProps = {
     id: string | number;
     visible: boolean;
   };
-  sessionId: string;
-  senderId: string;
+  sessionId: number;
+  senderId: number;
   senderName: string;
   senderMessage: string;
   avatarUrl?: string;

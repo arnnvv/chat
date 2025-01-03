@@ -3,8 +3,8 @@ import { twMerge } from "tailwind-merge";
 
 export const cn = (...inputs: ClassValue[]): string => twMerge(clsx(inputs));
 
-export const chatHrefConstructor = (id1: string, id2: string): string => {
-  const sortedIds: string[] = [id1, id2].sort();
+export const chatHrefConstructor = (id1: number, id2: number): string => {
+  const sortedIds: number[] = [id1, id2].sort();
   return `${sortedIds[0]}--${sortedIds[1]}`;
 };
 
