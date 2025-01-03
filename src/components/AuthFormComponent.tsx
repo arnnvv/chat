@@ -4,24 +4,31 @@ import {
   Children,
   cloneElement,
   isValidElement,
+  JSX,
+  type ReactNode,
   useState,
   useTransition,
-  type JSX,
-  type ReactNode,
 } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Spinner } from "./ui/spinner";
 import { ActionResult, isFormControl } from "@/lib/formComtrol";
 
-export const FormComponent = ({
+export const AuthFormComponent = ({
   children,
   action,
+  onSuccessRedirect,
 }: {
   children: ReactNode;
-  action: (prevState: any, formdata: FormData) => Promise<ActionResult>;
+  action: (_: any, formdata: FormData) => Promise<ActionResult>;
+  onSuccessRedirect: string;
 }): JSX.Element => {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [, setFormState] = useState<ActionResult>({
+  const [, setFormState] = useState<{
+    success: boolean;
+    message: string;
+  }>({
     success: false,
     message: "",
   });
@@ -40,6 +47,7 @@ export const FormComponent = ({
               onClick: () => toast.dismiss("success-toast"),
             },
           });
+          router.push(onSuccessRedirect);
         } else if (result.message) {
           toast.error(result.message, {
             id: "error-toast",
@@ -69,13 +77,7 @@ export const FormComponent = ({
   });
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-        handleSubmit(formData);
-      }}
-    >
+    <form action={handleSubmit}>
       {disabledChildren}
       {isPending && <Spinner />}
     </form>

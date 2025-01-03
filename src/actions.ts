@@ -16,7 +16,6 @@ import { eq, and, or } from "drizzle-orm";
 import { validateEmail } from "./lib/validate";
 import { pusherServer } from "./lib/pusher";
 import { chatHrefConstructor, toPusherKey } from "./lib/utils";
-import { ActionResult } from "./components/FormComponent";
 import { resolveIdstoUsers } from "./lib/resolveIdsToUsers";
 import { cache } from "react";
 import {
@@ -36,6 +35,7 @@ import { UploadFileResult } from "uploadthing/types";
 import { utapi } from "./lib/upload";
 import { sendEmail } from "./lib/email";
 import { deleteSessionTokenCookie, setSessionTokenCookie } from "./lib/session";
+import { ActionResult } from "./lib/formComtrol";
 
 export const getCurrentSession = cache(
   async (): Promise<SessionValidationResult> => {
@@ -610,15 +610,12 @@ export const changeUsernameAction = async (
   }
 };
 
-export async function uploadFile(fd: FormData): Promise<{
-  success: boolean;
-  errorOrUrl: string;
-}> {
+export async function uploadFile(fd: FormData): Promise<ActionResult> {
   const { session, user } = await getCurrentSession();
   if (session === null)
     return {
       success: false,
-      errorOrUrl: "Not Logged in",
+      message: "Not Logged in",
     };
   const file = fd.get("file") as File;
 
@@ -626,7 +623,7 @@ export async function uploadFile(fd: FormData): Promise<{
   if (uploadedFile.error)
     return {
       success: false,
-      errorOrUrl: uploadedFile.error.message,
+      message: uploadedFile.error.message,
     };
   try {
     await db
@@ -636,12 +633,12 @@ export async function uploadFile(fd: FormData): Promise<{
   } catch (e) {
     return {
       success: false,
-      errorOrUrl: `Error updating image ${e}`,
+      message: `Error updating image ${e}`,
     };
   }
   return {
     success: true,
-    errorOrUrl: uploadedFile.data.url,
+    message: uploadedFile.data.url,
   };
 }
 

@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
-import { Appbar } from "@/components/Appbar";
+import { Navbar } from "@/components/Navbar";
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -29,7 +29,7 @@ export default function RootLayout({
           fontSans.variable,
         )}
       >
-        <Appbar />
+        <Navbar />
         {children}
         <Toaster richColors={true} />
       </body>

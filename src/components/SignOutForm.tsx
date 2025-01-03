@@ -4,33 +4,29 @@ import {
   Children,
   cloneElement,
   isValidElement,
-  useState,
+  JSX,
+  ReactNode,
   useTransition,
-  type JSX,
-  type ReactNode,
 } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Spinner } from "./ui/spinner";
 import { ActionResult, isFormControl } from "@/lib/formComtrol";
 
-export const FormComponent = ({
+export const SignOutFormComponent = ({
   children,
   action,
 }: {
   children: ReactNode;
-  action: (prevState: any, formdata: FormData) => Promise<ActionResult>;
+  action: () => Promise<ActionResult>;
 }): JSX.Element => {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [, setFormState] = useState<ActionResult>({
-    success: false,
-    message: "",
-  });
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleSubmit = () => {
     startTransition(async () => {
       try {
-        const result = await action(null, formData);
-        setFormState(result);
+        const result = await action();
 
         if (result.success) {
           toast.success(result.message, {
@@ -40,7 +36,8 @@ export const FormComponent = ({
               onClick: () => toast.dismiss("success-toast"),
             },
           });
-        } else if (result.message) {
+          router.push("/login");
+        } else {
           toast.error(result.message, {
             id: "error-toast",
             action: {
@@ -72,8 +69,7 @@ export const FormComponent = ({
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-        handleSubmit(formData);
+        handleSubmit();
       }}
     >
       {disabledChildren}

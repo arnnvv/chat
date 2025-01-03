@@ -3,44 +3,52 @@
 import {
   Children,
   cloneElement,
+  FormEvent,
   isValidElement,
+  JSX,
+  ReactNode,
   useState,
   useTransition,
-  type JSX,
-  type ReactNode,
 } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Spinner } from "./ui/spinner";
 import { ActionResult, isFormControl } from "@/lib/formComtrol";
 
-export const FormComponent = ({
+type UploadFormProps = {
+  children: ReactNode;
+  action: (formdata: FormData) => Promise<ActionResult>;
+};
+
+export const UploadFormComponent = ({
   children,
   action,
-}: {
-  children: ReactNode;
-  action: (prevState: any, formdata: FormData) => Promise<ActionResult>;
-}): JSX.Element => {
+}: UploadFormProps): JSX.Element => {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [, setFormState] = useState<ActionResult>({
     success: false,
     message: "",
   });
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
     startTransition(async () => {
       try {
-        const result = await action(null, formData);
+        const result = await action(formData);
         setFormState(result);
 
         if (result.success) {
-          toast.success(result.message, {
+          toast.success("Uploaded", {
             id: "success-toast",
             action: {
               label: "Close",
               onClick: () => toast.dismiss("success-toast"),
             },
           });
-        } else if (result.message) {
+        } else {
           toast.error(result.message, {
             id: "error-toast",
             action: {
@@ -49,6 +57,8 @@ export const FormComponent = ({
             },
           });
         }
+
+        router.refresh();
       } catch {
         toast.error("An unexpected error occurred", {
           id: "error-toast",
@@ -57,6 +67,7 @@ export const FormComponent = ({
             onClick: () => toast.dismiss("error-toast"),
           },
         });
+        router.refresh();
       }
     });
   };
@@ -69,13 +80,7 @@ export const FormComponent = ({
   });
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        const formData = new FormData(e.currentTarget);
-        handleSubmit(formData);
-      }}
-    >
+    <form onSubmit={handleSubmit}>
       {disabledChildren}
       {isPending && <Spinner />}
     </form>
