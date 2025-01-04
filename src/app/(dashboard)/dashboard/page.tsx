@@ -15,8 +15,8 @@ interface FriendWithLastMsg extends User {
 }
 
 export default async function Pager(): Promise<JSX.Element> {
-  const { user } = await getCurrentSession();
-  if (!user) return redirect("/login");
+  const { user, session } = await getCurrentSession();
+  if (session === null) return redirect("/login");
 
   const friends: User[] = await getFriends(user.id);
 
@@ -83,8 +83,7 @@ export default async function Pager(): Promise<JSX.Element> {
                   <div className="relative h-6 w-6">
                     <Avatar className="w-8 h-8">
                       <AvatarImage
-                        src="https://github.com/arnnvv.png"
-                        alt="@shadcn"
+                        src={friend?.picture || "/default-avatar.png"}
                       />
                       <AvatarFallback>
                         {friend.username ? friend.username[0] : friend.email[0]}

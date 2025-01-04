@@ -11,6 +11,7 @@ import { CustomToast } from "./CustomToast";
 
 interface ExtendedMessageProps extends Message {
   senderName: string;
+  senderImage: string | null;
 }
 
 export const SidebarChatList = ({
@@ -100,10 +101,7 @@ export const SidebarChatList = ({
               className="text-gray-700 hover:text-cyan-400 hover:bg-gray-50 group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
             >
               <Avatar>
-                <AvatarImage
-                  src="https://github.com/arnnvv.png"
-                  alt="@shadcn"
-                />
+                <AvatarImage src={friend.picture || ""} />
                 <AvatarFallback>
                   {friend.username ? friend.username[0] : friend.email[0]}
                 </AvatarFallback>

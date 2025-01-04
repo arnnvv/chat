@@ -37,8 +37,8 @@ export default async function page({
 }: {
   children: ReactNode;
 }): Promise<JSX.Element> {
-  const { user } = await getCurrentSession();
-  if (!user) return redirect("/login");
+  const { user, session } = await getCurrentSession();
+  if (session === null) return redirect("/login");
 
   const friends: User[] = await getFriends(user.id);
   const unsceenReqCount: FriendRequest[] = await getFriendRequests(user.id);

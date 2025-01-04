@@ -44,7 +44,7 @@ export const CustomToast = ({
   sessionId,
   senderName,
   senderMessage,
-  avatarUrl = "https://github.com/arnnvv.png",
+  avatarUrl,
 }: ToastProps): JSX.Element => (
   <div
     className={cn(

@@ -70,10 +70,7 @@ export const MessagesComp = ({
                 })}
               >
                 <Avatar className="w-8 h-8">
-                  <AvatarImage
-                    src="https://github.com/arnnvv.png"
-                    alt="@shadcn"
-                  />
+                  <AvatarImage src={sessionImg || ""} />
                   <AvatarFallback>
                     {chatPartner.username
                       ? chatPartner.username[0]

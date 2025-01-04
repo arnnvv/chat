@@ -18,16 +18,16 @@ export const validateEmail = (data: Email): boolean => {
 };
 
 export const validateMessage = (data: Message): boolean => {
-  if (typeof data.id !== "string") {
-    console.error("Invalid type: id must be a string.");
+  if (typeof data.id !== "number") {
+    console.error("Invalid type: id must be a number.");
     return false;
   }
-  if (typeof data.senderId !== "string") {
-    console.error("Invalid type: senderId must be a string.");
+  if (typeof data.senderId !== "number") {
+    console.error("Invalid type: senderId must be a number.");
     return false;
   }
-  if (typeof data.recipientId !== "string") {
-    console.error("Invalid type: recipientId must be a string.");
+  if (typeof data.recipientId !== "number") {
+    console.error("Invalid type: recipientId must be a number.");
     return false;
   }
   if (!(data.createdAt instanceof Date) || isNaN(data.createdAt.getTime())) {

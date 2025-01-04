@@ -89,10 +89,7 @@ export default async function l({
           <div className="relative">
             <div className="relative w-8 sm:w-12 h-8 sm:h-12">
               <Avatar>
-                <AvatarImage
-                  src="https://github.com/arnnvv.png"
-                  alt="@shadcn"
-                />
+                <AvatarImage src={chatPartner.picture || ""} />
                 <AvatarFallback>
                   {chatPartner.username
                     ? chatPartner.username[0]
@@ -117,7 +114,7 @@ export default async function l({
       <MessagesComp
         chatId={chatId}
         chatPartner={chatPartner}
-        sessionImg={""}
+        sessionImg={chatPartner.picture}
         sessionId={user.id}
         initialMessages={initialMessages}
       />
