@@ -1,23 +1,19 @@
 "use server";
 
-import { db } from "./lib/db";
+import { cookies } from "next/headers";
+import { cache } from "react";
 import {
+  emailVerificationRequests,
   friendReqStatusEnum,
   type FriendRequest,
   friendRequests,
-  type User,
-  messages,
   type Message,
+  messages,
+  type NewMessage,
+  type User,
   users,
-  emailVerificationRequests,
-  NewMessage,
 } from "./lib/db/schema";
-import { eq, and, or } from "drizzle-orm";
-import { validateEmail } from "./lib/validate";
-import { pusherServer } from "./lib/pusher";
-import { chatHrefConstructor, toPusherKey } from "./lib/utils";
-import { resolveIdstoUsers } from "./lib/resolveIdsToUsers";
-import { cache } from "react";
+import { db } from "./lib/db";
 import {
   createSession,
   generateSessionToken,
@@ -25,17 +21,21 @@ import {
   SessionValidationResult,
   validateSessionToken,
 } from "./lib/auth";
-import { cookies } from "next/headers";
 import {
   hashPassword,
   verifyPasswordHash,
   verifyPasswordStrength,
 } from "./lib/password";
-import { UploadFileResult } from "uploadthing/types";
-import { utapi } from "./lib/upload";
-import { sendEmail } from "./lib/email";
 import { deleteSessionTokenCookie, setSessionTokenCookie } from "./lib/session";
+import { and, eq, or } from "drizzle-orm";
+import { utapi } from "./lib/upload";
+import { UploadFileResult } from "uploadthing/types";
 import { ActionResult } from "./lib/formComtrol";
+import { validateEmail } from "./lib/validate";
+import { pusherServer } from "./lib/pusher";
+import { chatHrefConstructor, toPusherKey } from "./lib/utils";
+import { resolveIdstoUsers } from "./lib/resolveIdsToUsers";
+import { sendEmail } from "./lib/email";
 
 export const getCurrentSession = cache(
   async (): Promise<SessionValidationResult> => {
