@@ -11,7 +11,7 @@ import { CustomToast } from "./CustomToast";
 
 interface ExtendedMessageProps extends Message {
   senderName: string;
-  senderImage: string | null;
+  senderImage: string;
 }
 
 export const SidebarChatList = ({

@@ -848,6 +848,7 @@ export const sendMessageAction = async ({
         {
           ...messageData,
           senderName: sender.username,
+          senderImage: sender.picture,
         },
       ),
       db.insert(messages).values(messageData).returning(),
