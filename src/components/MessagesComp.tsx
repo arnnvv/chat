@@ -70,7 +70,13 @@ export const MessagesComp = ({
                 })}
               >
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={sessionImg || ""} />
+                  <AvatarImage
+                    src={
+                      !isCurrentUser
+                        ? chatPartner.picture || ""
+                        : sessionImg || ""
+                    }
+                  />
                   <AvatarFallback>
                     {chatPartner.username
                       ? chatPartner.username[0]

@@ -114,7 +114,7 @@ export default async function l({
       <MessagesComp
         chatId={chatId}
         chatPartner={chatPartner}
-        sessionImg={chatPartner.picture}
+        sessionImg={user.picture}
         sessionId={user.id}
         initialMessages={initialMessages}
       />
