@@ -97,10 +97,7 @@ export default async function page({
               <div className="flex flex-1 items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900">
                 <div className="relative h-8 w-8 bg-gray-50">
                   <Avatar>
-                    <AvatarImage
-                      src="https://github.com/arnnvv.png"
-                      alt="@shadcn"
-                    />
+                    <AvatarImage src={user.picture || ""} alt="@shadcn" />
                     <AvatarFallback>
                       {user.username ? user.username[0] : user.email[0]}
                     </AvatarFallback>

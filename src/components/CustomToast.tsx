@@ -3,31 +3,19 @@ import { chatHrefConstructor, cn } from "@/lib/utils";
 import { JSX } from "react";
 import { toast } from "sonner";
 
-type ToastProps = {
-  t: {
-    id: string | number;
-    visible: boolean;
-  };
-  sessionId: number;
-  senderId: number;
-  senderName: string;
-  senderMessage: string;
-  avatarUrl?: string;
-};
-
 const ToastContent = ({
   senderName,
   senderMessage,
-  avatarUrl,
+  image,
 }: {
   senderName: string;
   senderMessage: string;
-  avatarUrl?: string;
+  image: string | null;
 }): JSX.Element => (
   <div className="flex items-center space-x-3">
     <div className="flex-shrink-0">
       <Avatar className="h-10 w-10">
-        <AvatarImage src={avatarUrl} alt={`Avatar of ${senderName}`} />
+        <AvatarImage src={image || ""} alt={`Avatar of ${senderName}`} />
         <AvatarFallback>{senderName.slice(0, 2).toUpperCase()}</AvatarFallback>
       </Avatar>
     </div>
@@ -44,8 +32,18 @@ export const CustomToast = ({
   sessionId,
   senderName,
   senderMessage,
-  avatarUrl,
-}: ToastProps): JSX.Element => (
+  image,
+}: {
+  t: {
+    id: string | number;
+    visible: boolean;
+  };
+  sessionId: number;
+  senderId: number;
+  senderName: string;
+  senderMessage: string;
+  image: string | null;
+}): JSX.Element => (
   <div
     className={cn(
       "max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex items-center ring-1 ring-black ring-opacity-5 z-50",
@@ -60,7 +58,7 @@ export const CustomToast = ({
       <ToastContent
         senderName={senderName}
         senderMessage={senderMessage}
-        avatarUrl={avatarUrl}
+        image={image}
       />
     </a>
     <div className="flex-shrink-0 border-l border-gray-200">

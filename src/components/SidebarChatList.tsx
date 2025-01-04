@@ -42,6 +42,7 @@ export const SidebarChatList = ({
             senderId={extendedMessage.senderId}
             senderMessage={extendedMessage.content}
             senderName={extendedMessage.senderName}
+            image={extendedMessage.senderImage}
           />
         ),
       );
