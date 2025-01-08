@@ -2,8 +2,10 @@ import { getCurrentSession } from "@/actions";
 import { OTPInput } from "@/components/OTPInput";
 import { redirect } from "next/navigation";
 import { JSX } from "react";
+import { globalGETRateLimit } from "@/lib/request";
 
-export default async function OTPPage(): Promise<JSX.Element> {
+export default async function OTPPage(): Promise<JSX.Element | undefined> {
+  if (!globalGETRateLimit()) return;
   const { user } = await getCurrentSession();
   if (!user) return redirect("/signup");
   if (user.verified) return redirect("/");
