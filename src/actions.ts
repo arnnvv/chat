@@ -59,7 +59,7 @@ export const logInAction = async (
   success: boolean;
   message: string;
 }> => {
-	  if (!globalPOSTRateLimit()) {
+  if (!globalPOSTRateLimit()) {
     return {
       success: false,
       message: "Too many requests",
@@ -123,8 +123,8 @@ export const signUpAction = async (
   _: any,
   formData: FormData,
 ): Promise<{
-	success: boolean;
-	message: string;
+  success: boolean;
+  message: string;
 }> => {
   if (!globalPOSTRateLimit()) {
     return {
