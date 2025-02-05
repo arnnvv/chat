@@ -3,12 +3,12 @@ import { ChatInput } from "@/components/ChatInput";
 import { MessagesComp } from "@/components/MessagesComp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/db";
-import { Message, messages, User, users } from "@/lib/db/schema";
+import { type Message, messages, type User, users } from "@/lib/db/schema";
 import { validateMessages } from "@/lib/validate";
 import { and, eq, or } from "drizzle-orm";
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { JSX } from "react";
+import type { JSX } from "react";
 
 export const generateMetadata = async ({
   params,

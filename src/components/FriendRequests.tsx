@@ -4,7 +4,7 @@ import { acceptFriendRequest, rejectFriendRequest } from "@/actions";
 import { pusherClient } from "@/lib/pusher";
 import { toPusherKey } from "@/lib/utils";
 import { Check, UserPlus, X } from "lucide-react";
-import { JSX, useEffect, useState } from "react";
+import { type JSX, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export const FriendRequests = ({

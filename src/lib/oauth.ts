@@ -1,7 +1,7 @@
 import {
   decodeBase64urlIgnorePadding,
   encodeBase64urlNoPadding,
-} from "@oslojs/encoding";
+} from "./encoding";
 import { Google } from "./google";
 import { GitHub } from "./github";
 

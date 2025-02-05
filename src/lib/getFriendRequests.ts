@@ -1,6 +1,6 @@
-import { SQL } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { db } from "./db";
-import { FriendRequest } from "./db/schema";
+import type { FriendRequest } from "./db/schema";
 
 export const getFriendRequests = async (id: number): Promise<FriendRequest[]> =>
   await db.query.friendRequests.findMany({

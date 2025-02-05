@@ -11,7 +11,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { Spinner } from "./ui/spinner";
-import { ActionResult, isFormControl } from "@/lib/formComtrol";
+import { type ActionResult, isFormControl } from "@/lib/formComtrol";
 
 export const FormComponent = ({
   children,

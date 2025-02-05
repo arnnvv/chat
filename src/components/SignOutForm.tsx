@@ -4,14 +4,14 @@ import {
   Children,
   cloneElement,
   isValidElement,
-  JSX,
-  ReactNode,
+  type JSX,
+  type ReactNode,
   useTransition,
 } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Spinner } from "./ui/spinner";
-import { ActionResult, isFormControl } from "@/lib/formComtrol";
+import { type ActionResult, isFormControl } from "@/lib/formComtrol";
 
 export const SignOutFormComponent = ({
   children,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { User } from "lucide-react";
-import { JSX, useEffect, useState } from "react";
+import { type JSX, useEffect, useState } from "react";
 import { pusherClient } from "@/lib/pusher";
 import { toPusherKey } from "@/lib/utils";
 

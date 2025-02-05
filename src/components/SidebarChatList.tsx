@@ -5,7 +5,7 @@ import type { Message, User } from "@/lib/db/schema";
 import { pusherClient } from "@/lib/pusher";
 import { chatHrefConstructor, toPusherKey } from "@/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
-import { JSX, useEffect, useState } from "react";
+import { type JSX, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CustomToast } from "./CustomToast";
 

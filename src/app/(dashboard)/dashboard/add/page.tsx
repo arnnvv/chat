@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { JSX } from "react";
+import type { JSX } from "react";
 
 export const metadata: Metadata = {
   title: "Add friend",

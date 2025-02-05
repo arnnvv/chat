@@ -1,4 +1,4 @@
-import { JSX } from "react";
+import type { JSX } from "react";
 import Skeleton from "react-loading-skeleton";
 
 export default function Load(): JSX.Element {

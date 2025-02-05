@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { JSX } from "react";
+import type { JSX } from "react";
 import { ForgotPasswordFormComponent } from "@/components/ForgotPasswordFormComponent";
 
 export default async function Page(): Promise<JSX.Element> {

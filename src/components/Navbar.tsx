@@ -11,7 +11,7 @@ import { Button } from "./ui/button";
 import { SignOutFormComponent } from "./SignOutForm";
 import { UploadFormComponent } from "./UploadFormComponent";
 import { FileInput } from "./FileInput";
-import { JSX } from "react";
+import type { JSX } from "react";
 
 export const Navbar = async (): Promise<JSX.Element | null> => {
   const { user, session } = await getCurrentSession();

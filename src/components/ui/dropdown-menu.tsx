@@ -18,11 +18,11 @@ import {
   Trigger,
 } from "@radix-ui/react-dropdown-menu";
 import {
-  ComponentPropsWithoutRef,
-  ComponentRef,
+  type ComponentPropsWithoutRef,
+  type ComponentRef,
   forwardRef,
-  HTMLAttributes,
-  JSX,
+  type HTMLAttributes,
+  type JSX,
 } from "react";
 import { Check, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";

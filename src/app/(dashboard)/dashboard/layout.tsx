@@ -1,12 +1,12 @@
 import { getCurrentSession } from "@/actions";
 import { FriendRequestSidebarOption } from "@/components/FriendRequestSidebarOption";
-import { Icon, Icons } from "@/components/Icons";
+import { type Icon, Icons } from "@/components/Icons";
 import { SidebarChatList } from "@/components/SidebarChatList";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FriendRequest, type User } from "@/lib/db/schema";
+import type { FriendRequest, User } from "@/lib/db/schema";
 import { getFriendRequests } from "@/lib/getFriendRequests";
 import { getFriends } from "@/lib/getFriends";
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { JSX, ReactNode } from "react";

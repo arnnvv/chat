@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { redirect } from "next/navigation";
-import { JSX } from "react";
+import type { JSX } from "react";
 
 export default async function Page(props: {
   params: Promise<{

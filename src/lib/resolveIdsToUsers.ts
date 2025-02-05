@@ -1,8 +1,8 @@
 import { db } from "./db";
-import { User } from "./db/schema";
+import type { User } from "./db/schema";
 
 export const resolveIdstoUsers = async (ids: number[]): Promise<User[]> => {
-  let users: User[] = [];
+  const users: User[] = [];
   for (const id of ids) {
     const user = (await db.query.users.findFirst({
       where: (users, { eq }) => eq(users.id, id),

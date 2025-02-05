@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { chatHrefConstructor, cn } from "@/lib/utils";
-import { JSX } from "react";
+import type { JSX } from "react";
 import { toast } from "sonner";
 
 const ToastContent = ({

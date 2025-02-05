@@ -1,8 +1,8 @@
 "use client";
 
-import { Message, User } from "@/lib/db/schema";
+import type { Message, User } from "@/lib/db/schema";
 import { cn, toPusherKey } from "@/lib/utils";
-import { JSX, RefObject, useEffect, useRef, useState } from "react";
+import { type JSX, type RefObject, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { pusherClient } from "@/lib/pusher";

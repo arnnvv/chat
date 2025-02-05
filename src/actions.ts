@@ -18,7 +18,7 @@ import {
   createSession,
   generateSessionToken,
   invalidateSession,
-  SessionValidationResult,
+  type SessionValidationResult,
   validateSessionToken,
 } from "./lib/auth";
 import {
@@ -29,8 +29,8 @@ import {
 import { deleteSessionTokenCookie, setSessionTokenCookie } from "./lib/session";
 import { and, eq, or } from "drizzle-orm";
 import { utapi } from "./lib/upload";
-import { UploadFileResult } from "uploadthing/types";
-import { ActionResult } from "./lib/formComtrol";
+import type { UploadFileResult } from "uploadthing/types";
+import type { ActionResult } from "./lib/formComtrol";
 import { validateEmail } from "./lib/validate";
 import { pusherServer } from "./lib/pusher";
 import { chatHrefConstructor, toPusherKey } from "./lib/utils";
@@ -860,7 +860,7 @@ export const sendMessageAction = async ({
   | undefined
 > => {
   try {
-    let chat: Message[] | undefined = (await db
+    const chat: Message[] | undefined = (await db
       .select()
       .from(messages)
       .where(

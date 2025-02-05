@@ -2,13 +2,13 @@
 
 import { sendMessageAction } from "@/actions";
 import { Button } from "@/components/ui/button";
-import { User } from "@/lib/db/schema";
+import type { User } from "@/lib/db/schema";
 import {
-  ChangeEvent,
-  JSX,
-  KeyboardEvent,
-  Ref,
-  RefObject,
+  type ChangeEvent,
+  type JSX,
+  type KeyboardEvent,
+  type Ref,
+  type RefObject,
   useRef,
   useState,
 } from "react";

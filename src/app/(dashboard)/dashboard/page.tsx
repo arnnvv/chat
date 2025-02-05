@@ -1,14 +1,14 @@
 import { getCurrentSession } from "@/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/db";
-import { Message, messages, User } from "@/lib/db/schema";
+import { type Message, messages, type User } from "@/lib/db/schema";
 import { getFriends } from "@/lib/getFriends";
 import { chatHrefConstructor } from "@/lib/utils";
 import { and, desc, eq, or } from "drizzle-orm";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { JSX } from "react";
+import type { JSX } from "react";
 
 interface FriendWithLastMsg extends User {
   lastMessage: Message;

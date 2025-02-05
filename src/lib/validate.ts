@@ -1,4 +1,4 @@
-import { Message } from "./db/schema";
+import type { Message } from "./db/schema";
 
 type Email = {
   email: string;

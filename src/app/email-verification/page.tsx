@@ -1,7 +1,7 @@
 import { getCurrentSession } from "@/actions";
 import { OTPInput } from "@/components/OTPInput";
 import { redirect } from "next/navigation";
-import { JSX } from "react";
+import type { JSX } from "react";
 import { globalGETRateLimit } from "@/lib/request";
 
 export default async function OTPPage(): Promise<JSX.Element | undefined> {

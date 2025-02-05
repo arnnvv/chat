@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@radix-ui/react-separator";
 import { Github } from "lucide-react";
 import Link from "next/link";
-import { JSX } from "react";
+import type { JSX } from "react";
 import { globalGETRateLimit } from "@/lib/request";
 
 export default async function Page(): Promise<JSX.Element | undefined> {

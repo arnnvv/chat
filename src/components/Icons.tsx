@@ -1,5 +1,5 @@
-import { LucideProps, UserPlus } from "lucide-react";
-import { JSX } from "react";
+import { type LucideProps, UserPlus } from "lucide-react";
+import type { JSX } from "react";
 
 export const Icons = {
   Logo: (props: LucideProps): JSX.Element => (

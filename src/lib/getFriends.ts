@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "./db";
-import { FriendRequest, User } from "./db/schema";
+import type { FriendRequest, User } from "./db/schema";
 import { resolveIdstoUsers } from "./resolveIdsToUsers";
 
 export const getFriends = async (id: number): Promise<User[]> => {

@@ -2,7 +2,13 @@
 
 import { verifyOTPAction, resendOTPAction } from "@/actions";
 import { useRouter } from "next/navigation";
-import { FormEvent, KeyboardEvent, useTransition, useState, JSX } from "react";
+import {
+  type FormEvent,
+  type KeyboardEvent,
+  useTransition,
+  useState,
+  type JSX,
+} from "react";
 import { toast } from "sonner";
 
 export function OTPInput({ userEmail }: { userEmail: string }): JSX.Element {
