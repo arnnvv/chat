@@ -272,6 +272,13 @@ export const signOutAction = async (): Promise<{
 };
 
 export async function verifyOTPAction(formData: FormData) {
+  if (!globalPOSTRateLimit()) {
+    return {
+      success: false,
+      message: "Too many requests",
+    };
+  }
+
   try {
     const { user } = await getCurrentSession();
     if (!user) return;
@@ -421,6 +428,13 @@ export async function forgotPasswordAction(
 }
 
 export async function verifyOTPForgotPassword(formData: FormData) {
+  if (!globalPOSTRateLimit()) {
+    return {
+      success: false,
+      message: "Too many requests",
+    };
+  }
+
   try {
     const userEmail = formData.get("userEmail") as string;
     if (!userEmail) {
