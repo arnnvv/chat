@@ -44,7 +44,7 @@
     "uploadthing": "^7.4.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.1.1",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^19.0.2",
