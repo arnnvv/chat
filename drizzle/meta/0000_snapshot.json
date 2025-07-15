@@ -45,12 +45,8 @@
           "name": "chat_email_verification_request_user_id_chat_users_id_fk",
           "tableFrom": "chat_email_verification_request",
           "tableTo": "chat_users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -111,12 +107,8 @@
           "name": "chat_friend_requests_requester_id_chat_users_id_fk",
           "tableFrom": "chat_friend_requests",
           "tableTo": "chat_users",
-          "columnsFrom": [
-            "requester_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["requester_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -124,12 +116,8 @@
           "name": "chat_friend_requests_recipient_id_chat_users_id_fk",
           "tableFrom": "chat_friend_requests",
           "tableTo": "chat_users",
-          "columnsFrom": [
-            "recipient_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["recipient_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -181,12 +169,8 @@
           "name": "chat_messages_sender_id_chat_users_id_fk",
           "tableFrom": "chat_messages",
           "tableTo": "chat_users",
-          "columnsFrom": [
-            "sender_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sender_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -194,12 +178,8 @@
           "name": "chat_messages_recipient_id_chat_users_id_fk",
           "tableFrom": "chat_messages",
           "tableTo": "chat_users",
-          "columnsFrom": [
-            "recipient_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["recipient_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -239,12 +219,8 @@
           "name": "chat_sessions_user_id_chat_users_id_fk",
           "tableFrom": "chat_sessions",
           "tableTo": "chat_users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -304,16 +280,12 @@
         "chat_users_username_unique": {
           "name": "chat_users_username_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "username"
-          ]
+          "columns": ["username"]
         },
         "chat_users_email_unique": {
           "name": "chat_users_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -325,11 +297,7 @@
     "public.friend_req_status": {
       "name": "friend_req_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "accepted",
-        "declined"
-      ]
+      "values": ["pending", "accepted", "declined"]
     }
   },
   "schemas": {},

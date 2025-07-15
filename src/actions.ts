@@ -34,7 +34,7 @@ import type { UploadFileResult } from "uploadthing/types";
 import type { ActionResult } from "./lib/formComtrol";
 import { validateEmail } from "./lib/validate";
 import { pusherServer } from "./lib/pusher";
-import { toPusherKey } from "./lib/utils";
+import { chatHrefConstructor, toPusherKey } from "./lib/utils";
 import { resolveIdstoUsers } from "./lib/resolveIdsToUsers";
 import { sendEmail } from "./lib/email";
 import { globalGETRateLimit, globalPOSTRateLimit } from "./lib/request";
@@ -863,8 +863,14 @@ export const sendMessageAction = async ({
   sender: Omit<User, "password">;
   receiver: User;
 }): Promise<
-  | { message: string; error?: undefined }
-  | { error: string; message?: undefined }
+  | {
+      message: string;
+      error?: undefined;
+    }
+  | {
+      error: string;
+      message?: undefined;
+    }
   | undefined
 > => {
   try {
@@ -880,25 +886,28 @@ export const sendMessageAction = async ({
       createdAt: new Date(),
     };
 
-    const recipientDevices = await db.query.devices.findMany({
-      where: eq(devices.userId, receiver.id),
-    });
+    const [insertedMessage] = await db
+      .insert(messages)
+      .values(messageData)
+      .returning();
 
-    const notifications = recipientDevices.map((device) =>
-      pusherServer.trigger(
-        toPusherKey(`user:${receiver.id}:device:${device.id}`),
-        "incoming-message",
-        {
-          ...messageData,
-          senderName: sender.username,
-          senderImage: sender.picture,
-        },
-      ),
-    );
+    const pusherPayload = {
+      ...insertedMessage,
+      senderName: sender.username,
+      senderImage: sender.picture,
+    };
 
     await Promise.all([
-      ...notifications,
-      db.insert(messages).values(messageData).returning(),
+      pusherServer.trigger(
+        toPusherKey(`chat:${chatHrefConstructor(sender.id, receiver.id)}`),
+        "incoming-message",
+        pusherPayload,
+      ),
+      pusherServer.trigger(
+        toPusherKey(`user:${receiver.id}:chats`),
+        "new_message",
+        pusherPayload,
+      ),
     ]);
 
     return { message: "Message sent" };
