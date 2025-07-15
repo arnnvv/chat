@@ -17,7 +17,10 @@ const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
   return bytes.buffer;
 };
 
-const ecdhAlgorithm = { name: "ECDH", namedCurve: "P-256" };
+const ecdhAlgorithm = {
+  name: "ECDH",
+  namedCurve: "P-256",
+};
 
 export const generateX25519KeyPair = async (): Promise<CryptoKeyPair> => {
   return await window.crypto.subtle.generateKey(ecdhAlgorithm, true, [

@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { JSX, ReactNode } from "react";
+import { DeviceSetupCheck } from "@/components/DeviceSetupCheck";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -117,9 +118,11 @@ export default async function page({
         </nav>
       </div>
 
-      <aside className="max-h-screen container py-16 md:py-12 w-full">
-        {children}
-      </aside>
+      <DeviceSetupCheck>
+        <aside className="max-h-screen container py-16 md:py-12 w-full">
+          {children}
+        </aside>
+      </DeviceSetupCheck>
     </div>
   );
 }
