@@ -14,10 +14,9 @@ import { cn, toPusherKey } from "@/lib/utils";
 import { format } from "date-fns";
 import { type JSX, type RefObject, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Spinner } from "./ui/spinner";
 
 interface DecryptedMessage extends Message {
-  decryptedContent: string;
+  decryptedContent: string | null;
 }
 
 export const MessagesComp = ({
@@ -34,27 +33,27 @@ export const MessagesComp = ({
   initialMessages: Message[];
 }): JSX.Element => {
   const scrollRef: RefObject<HTMLDivElement | null> = useRef(null);
+
   const [decryptedMessages, setDecryptedMessages] = useState<
     DecryptedMessage[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
+  >(() => initialMessages.map((msg) => ({ ...msg, decryptedContent: null })));
 
-  // Use a ref to cache the cryptographic keys for the session
   const cryptoKeysRef = useRef<{
     ownPrivateKey: CryptoKey | null;
     ownDeviceId: string | null;
     partnerPublicKeys: Map<number, CryptoKey>;
+    isSetup: boolean;
   }>({
     ownPrivateKey: null,
     ownDeviceId: null,
     partnerPublicKeys: new Map(),
+    isSetup: false,
   });
 
   const decryptMessageContent = async (message: Message): Promise<string> => {
     const { ownPrivateKey, ownDeviceId, partnerPublicKeys } =
       cryptoKeysRef.current;
-    if (!ownPrivateKey || !ownDeviceId)
-      return "[Decryption unavailable: Missing local keys]";
+    if (!ownPrivateKey || !ownDeviceId) return "[Key Error]";
 
     try {
       const payload = JSON.parse(message.content);
@@ -63,47 +62,38 @@ export const MessagesComp = ({
       const senderIsSelf = message.senderId === sessionId;
 
       if (senderIsSelf) {
-        // This is an OUTGOING message I sent. Decrypt a payload meant for the partner.
         const anyRecipientIdStr = Object.keys(recipients)[0];
-        if (!anyRecipientIdStr)
-          return "[Cannot decrypt sent message: No recipients found]";
-
-        const anyRecipientId = parseInt(anyRecipientIdStr, 10);
-        const partnerPublicKey = partnerPublicKeys.get(anyRecipientId);
-
-        if (!partnerPublicKey)
-          return "[Cannot decrypt sent message: Partner key unavailable]";
-
+        if (!anyRecipientIdStr) return "[No Recipients]";
+        const partnerPublicKey = partnerPublicKeys.get(
+          parseInt(anyRecipientIdStr, 10),
+        );
+        if (!partnerPublicKey) return "[Partner Key Error]";
         const sharedKey = await deriveSharedSecret(
           ownPrivateKey,
           partnerPublicKey,
         );
         return await decryptMessage(sharedKey, recipients[anyRecipientIdStr]);
+      } else {
+        const encryptedForMe = recipients[ownDeviceIdNum];
+        if (!encryptedForMe) return "[Not for this device]";
+        const senderPublicKey = partnerPublicKeys.get(senderDeviceId);
+        if (!senderPublicKey) return "[Sender Key Error]";
+        const sharedKey = await deriveSharedSecret(
+          ownPrivateKey,
+          senderPublicKey,
+        );
+        return await decryptMessage(sharedKey, encryptedForMe);
       }
-      // This is an INCOMING message.
-      const encryptedForMe = recipients[ownDeviceIdNum];
-      if (!encryptedForMe) return "[Message not for this device]";
-
-      // The sender is my partner, so I need their public key.
-      const senderPublicKey = partnerPublicKeys.get(senderDeviceId);
-      if (!senderPublicKey)
-        return "[Cannot decrypt received message: Sender key unavailable]";
-
-      const sharedKey = await deriveSharedSecret(
-        ownPrivateKey,
-        senderPublicKey,
-      );
-      return await decryptMessage(sharedKey, encryptedForMe);
     } catch (e) {
-      // If content is not a valid JSON payload, it might be an old message.
       return message.content;
     }
   };
 
   useEffect(() => {
     const setupAndDecrypt = async () => {
-      setIsLoading(true);
       try {
+        if (cryptoKeysRef.current.isSetup) return;
+
         const privateKeyData = localStorage.getItem("privateKey");
         const deviceId = localStorage.getItem("deviceId");
         if (!privateKeyData || !deviceId)
@@ -113,16 +103,15 @@ export const MessagesComp = ({
           await importPrivateKey(privateKeyData);
         cryptoKeysRef.current.ownDeviceId = deviceId;
 
-        // Fetch partner's devices and import their public keys
         const partnerDeviceList = await getRecipientDevices(chatPartner.id);
-        for (const device of partnerDeviceList) {
-          cryptoKeysRef.current.partnerPublicKeys.set(
-            device.id,
-            await importPublicKey(device.publicKey),
-          );
-        }
+        await Promise.all(
+          partnerDeviceList.map(async (device) => {
+            const importedKey = await importPublicKey(device.publicKey);
+            cryptoKeysRef.current.partnerPublicKeys.set(device.id, importedKey);
+          }),
+        );
+        cryptoKeysRef.current.isSetup = true;
 
-        // Decrypt all initial messages concurrently for performance
         const newlyDecrypted = await Promise.all(
           initialMessages.map(async (msg) => ({
             ...msg,
@@ -137,18 +126,18 @@ export const MessagesComp = ({
             ? error.message
             : "Failed to set up secure session.",
         );
-      } finally {
-        setIsLoading(false);
       }
     };
 
     setupAndDecrypt();
-    // We only want this to run once when the component mounts with initial messages
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatPartner.id, sessionId]);
+  }, [chatPartner.id, initialMessages, sessionId]);
 
   useEffect(() => {
     const pusherMessageHandler = async (message: Message) => {
+      if (!cryptoKeysRef.current.isSetup) {
+        console.warn("Pusher message received before crypto setup, ignoring.");
+        return;
+      }
       const decryptedContent = await decryptMessageContent(message);
       setDecryptedMessages((prev) => [
         { ...message, decryptedContent },
@@ -163,17 +152,7 @@ export const MessagesComp = ({
       pusherClient.unsubscribe(toPusherKey(`chat:${chatId}`));
       pusherClient.unbind("incoming-message", pusherMessageHandler);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatId, sessionId]);
-
-  if (isLoading) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <Spinner />
-        <p className="ml-2">Establishing secure connection...</p>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -235,7 +214,7 @@ export const MessagesComp = ({
                     !isCurrentUser && !hasNxtMessage && "rounded-bl-none",
                   )}
                 >
-                  {message.decryptedContent}{" "}
+                  {message.decryptedContent ?? "..."}{" "}
                   <span className="ml-2 text-xs text-gray-400">
                     {format(new Date(message.createdAt), "HH:mm")}
                   </span>
