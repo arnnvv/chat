@@ -7,9 +7,12 @@ import {
   type KeyboardEvent,
   useTransition,
   useState,
+  useRef,
   type JSX,
 } from "react";
 import { toast } from "sonner";
+
+const OTP_LENGTH = 8;
 
 export const ForgotOTP = ({
   userEmail,
@@ -21,27 +24,22 @@ export const ForgotOTP = ({
   const router = useRouter();
   const [resendCooldown, setResendCooldown] = useState(0);
 
+  const inputRefs = useRef<HTMLInputElement[]>([]);
+
   const handleInput = (e: FormEvent<HTMLInputElement>, index: number) => {
     const input = e.currentTarget;
     input.value = input.value.toUpperCase();
-    if (input.value.length >= 1) {
-      if (index < 7) {
-        const nextInput = document.querySelector<HTMLInputElement>(
-          `input[name='otp[${index + 1}]']`,
-        );
-        nextInput?.focus();
-      } else if (index === 7) {
-        input.form?.requestSubmit();
-      }
+
+    if (input.value.length === 1 && index < OTP_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
+    } else if (input.value.length === 1 && index === OTP_LENGTH - 1) {
+      input.form?.requestSubmit();
     }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === "Backspace" && !e.currentTarget.value && index > 0) {
-      const prevInput = document.querySelector<HTMLInputElement>(
-        `input[name='otp[${index - 1}]']`,
-      );
-      prevInput?.focus();
+      inputRefs.current[index - 1]?.focus();
     }
   };
 
@@ -54,7 +52,7 @@ export const ForgotOTP = ({
         toast.success(result.message);
         router.push(`/new-password/${userEmail}`);
       } else {
-        toast.error(result?.message);
+        toast.error(result?.message || "Invalid OTP");
       }
     });
   };
@@ -78,7 +76,7 @@ export const ForgotOTP = ({
             });
           }, 1000);
         } else {
-          toast.error(result?.message);
+          toast.error(result?.message || "Resend failed");
         }
       } catch {
         toast.error("Failed to resend OTP. Please try again.");
@@ -91,18 +89,22 @@ export const ForgotOTP = ({
       <form onSubmit={handleSubmit}>
         <input type="hidden" name="userEmail" value={userEmail} />
         <div className="flex justify-center space-x-4">
-          {[...Array(8)].map((_, index) => (
+          {Array.from({ length: OTP_LENGTH }, (_, index) => ({
+            id: `forgot-otp-${index}`,
+          })).map((item, index) => (
             <input
-              key={index}
+              key={item.id}
               type="text"
               pattern="[A-Za-z0-9]"
               maxLength={1}
               name={`otp[${index}]`}
               className="w-12 h-16 text-2xl text-center border-b-2 border-gray-300 bg-transparent text-gray-800 uppercase focus:outline-none focus:border-blue-500 transition-colors"
               required
-              autoFocus={index === 0}
               onInput={(e) => handleInput(e, index)}
               onKeyDown={(e) => handleKeyDown(e, index)}
+              ref={(el) => {
+                if (el) inputRefs.current[index] = el;
+              }}
             />
           ))}
         </div>

@@ -7,10 +7,10 @@ const getPusher = (): {
   pusherAppSecret: string;
   pusherAppCluster: string;
 } => {
-  const pusherAppId: string | undefined = process.env.PUSHER_APP_ID!;
+  const pusherAppId: string = process.env.PUSHER_APP_ID!;
   const pusherAppKey: string | undefined =
     process.env.NEXT_PUBLIC_PUSHER_APP_KEY;
-  const pusherAppSecret: string | undefined = process.env.PUSHER_APP_SECRET!;
+  const pusherAppSecret: string = process.env.PUSHER_APP_SECRET!;
   const pusherAppCluster: string | undefined =
     process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER;
 

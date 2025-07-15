@@ -30,7 +30,10 @@ export const validateMessage = (data: Message): boolean => {
     console.error("Invalid type: recipientId must be a number.");
     return false;
   }
-  if (!(data.createdAt instanceof Date) || isNaN(data.createdAt.getTime())) {
+  if (
+    !(data.createdAt instanceof Date) ||
+    Number.isNaN(data.createdAt.getTime())
+  ) {
     console.error("Invalid type: createdAt must be a valid Date.");
     return false;
   }

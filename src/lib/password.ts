@@ -40,6 +40,6 @@ export function generateRandomPassword(length: number): string {
   const array = new Uint8Array(length);
   crypto.getRandomValues(array);
   return Array.from(array, (byte) =>
-    ("0" + (byte & 0xff).toString(16)).slice(-2),
+    `0${(byte & 0xff).toString(16)}`.slice(-2),
   ).join("");
 }

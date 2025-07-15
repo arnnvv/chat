@@ -55,7 +55,7 @@ export default async function page({
           </div>
         ) : null}
         <nav className="flex flex-1 flex-col">
-          <ul role="list" className="flex flex-1 flex-col gap-y-7">
+          <ul className="flex flex-1 flex-col gap-y-7">
             <li>
               <SidebarChatList sessionId={user.id} friends={friends} />
             </li>
@@ -64,7 +64,7 @@ export default async function page({
               <div className="text-xs font-semibold leading-6 text-gray-400">
                 Archived
               </div>
-              <ul role="list" className="-mx-2 mt-2 space-y-1">
+              <ul className="-mx-2 mt-2 space-y-1">
                 {sidebarNav.map((opn: SidebarNavProps): JSX.Element => {
                   const Icon = Icons[opn.Icon];
                   return (

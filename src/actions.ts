@@ -7,11 +7,12 @@ import {
   friendReqStatusEnum,
   type FriendRequest,
   friendRequests,
-  type Message,
   messages,
   type NewMessage,
   type User,
   users,
+  type Device,
+  devices,
 } from "./lib/db/schema";
 import { db } from "./lib/db";
 import {
@@ -27,13 +28,13 @@ import {
   verifyPasswordStrength,
 } from "./lib/password";
 import { deleteSessionTokenCookie, setSessionTokenCookie } from "./lib/session";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { utapi } from "./lib/upload";
 import type { UploadFileResult } from "uploadthing/types";
 import type { ActionResult } from "./lib/formComtrol";
 import { validateEmail } from "./lib/validate";
 import { pusherServer } from "./lib/pusher";
-import { chatHrefConstructor, toPusherKey } from "./lib/utils";
+import { toPusherKey } from "./lib/utils";
 import { resolveIdstoUsers } from "./lib/resolveIdsToUsers";
 import { sendEmail } from "./lib/email";
 import { globalGETRateLimit, globalPOSTRateLimit } from "./lib/request";
@@ -287,8 +288,6 @@ export async function verifyOTPAction(formData: FormData) {
       otpValues.push(formData.get(`otp[${i}]`) || "");
     }
     const otpValue = otpValues.join("");
-
-    // Find the verification request for this user
     const verificationRequest =
       await db.query.emailVerificationRequests.findFirst({
         where: and(
@@ -297,9 +296,7 @@ export async function verifyOTPAction(formData: FormData) {
         ),
       });
 
-    // Check if OTP is valid
     if (!verificationRequest) {
-      // Delete the verification request regardless of success
       await db
         .delete(emailVerificationRequests)
         .where(eq(emailVerificationRequests.userId, user.id));
@@ -310,9 +307,7 @@ export async function verifyOTPAction(formData: FormData) {
       };
     }
 
-    // Check if OTP has expired
     if (verificationRequest.expiresAt < new Date()) {
-      // Delete the verification request
       await db
         .delete(emailVerificationRequests)
         .where(eq(emailVerificationRequests.userId, user.id));
@@ -323,10 +318,7 @@ export async function verifyOTPAction(formData: FormData) {
       };
     }
 
-    // Update user as verified
     await db.update(users).set({ verified: true }).where(eq(users.id, user.id));
-
-    // Delete the verification request
     await db
       .delete(emailVerificationRequests)
       .where(eq(emailVerificationRequests.userId, user.id));
@@ -768,7 +760,7 @@ export const addFriendAction = async (
     await db.insert(friendRequests).values(newFriendRequest);
 
     return { success: true, message: "Friend request sent" };
-  } catch (e) {
+  } catch (_e) {
     return { success: false, message: "unexpected error check Server logs" };
   }
 };
@@ -861,11 +853,13 @@ export const rejectFriendRequest = async (
 };
 
 export const sendMessageAction = async ({
-  input,
+  senderDeviceId,
+  encryptedContent,
   sender,
   receiver,
 }: {
-  input: string;
+  senderDeviceId: number;
+  encryptedContent: Record<number, string>;
   sender: Omit<User, "password">;
   receiver: User;
 }): Promise<
@@ -874,47 +868,109 @@ export const sendMessageAction = async ({
   | undefined
 > => {
   try {
-    const chat: Message[] | undefined = (await db
-      .select()
-      .from(messages)
-      .where(
-        or(
-          and(
-            eq(messages.senderId, sender.id),
-            eq(messages.recipientId, receiver.id),
-          ),
-        ),
-      )
-      .limit(1)) as Message[] | undefined;
-
-    if (!chat) return { error: "Chat not found" };
+    const contentPayload = JSON.stringify({
+      senderDeviceId,
+      recipients: encryptedContent,
+    });
 
     const messageData: NewMessage = {
       senderId: sender.id,
       recipientId: receiver.id,
-      content: input,
-      createdAt: new Date(Date.now()),
+      content: contentPayload,
+      createdAt: new Date(),
     };
 
-    await Promise.all([
+    const recipientDevices = await db.query.devices.findMany({
+      where: eq(devices.userId, receiver.id),
+    });
+
+    const notifications = recipientDevices.map((device) =>
       pusherServer.trigger(
-        toPusherKey(`chat:${chatHrefConstructor(sender.id, receiver.id)}`),
+        toPusherKey(`user:${receiver.id}:device:${device.id}`),
         "incoming-message",
-        messageData,
-      ),
-      pusherServer.trigger(
-        toPusherKey(`user:${receiver.id}:chats`),
-        "new_message",
         {
           ...messageData,
           senderName: sender.username,
           senderImage: sender.picture,
         },
       ),
+    );
+
+    await Promise.all([
+      ...notifications,
       db.insert(messages).values(messageData).returning(),
     ]);
+
     return { message: "Message sent" };
   } catch (e) {
-    return { error: `${e}` };
+    console.error("Error sending message:", e);
+    return { error: `Failed to send message: ${e}` };
   }
 };
+
+export async function registerDeviceAction(
+  publicKey: string,
+  deviceName: string,
+): Promise<ActionResult> {
+  if (!globalPOSTRateLimit()) {
+    return { success: false, message: "Too many requests" };
+  }
+
+  const { user } = await getCurrentSession();
+  if (!user) {
+    return { success: false, message: "Not authenticated" };
+  }
+
+  if (!publicKey || typeof publicKey !== "string" || publicKey.length < 1) {
+    return { success: false, message: "Invalid public key" };
+  }
+  if (!deviceName || typeof deviceName !== "string" || deviceName.length < 1) {
+    return { success: false, message: "Invalid device name" };
+  }
+
+  try {
+    const [newDevice] = await db
+      .insert(devices)
+      .values({
+        userId: user.id,
+        publicKey,
+        name: deviceName,
+      })
+      .returning();
+
+    return {
+      success: true,
+      message: `Device registered successfully with ID: ${newDevice.id}`,
+    };
+  } catch (error) {
+    console.error("Failed to register device:", error);
+    if (error instanceof Error && error.message.includes("unique constraint")) {
+      return {
+        success: false,
+        message: "This public key is already registered for this user.",
+      };
+    }
+    return {
+      success: false,
+      message: "Failed to register device. Please try again.",
+    };
+  }
+}
+
+export async function getRecipientDevices(
+  recipientId: number,
+): Promise<Device[]> {
+  if (!globalGETRateLimit()) {
+    throw new Error("Rate limit exceeded");
+  }
+  const { user } = await getCurrentSession();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const recipientDevices = await db.query.devices.findMany({
+    where: eq(devices.userId, recipientId),
+  });
+
+  return recipientDevices;
+}

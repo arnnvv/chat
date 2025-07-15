@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import {
   boolean,
   integer,
@@ -6,6 +7,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core";
 
@@ -28,8 +30,41 @@ export const users = createTable("users", {
   picture: text("picture"),
 });
 
+export const usersRelations = relations(users, ({ many }) => ({
+  devices: many(devices),
+}));
+
+export const devices = createTable(
+  "devices",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    publicKey: text("public_key").notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("user_id_pub_key_idx").on(table.userId, table.publicKey),
+  ],
+);
+
+export const devicesRelations = relations(devices, ({ one }) => ({
+  user: one(users, {
+    fields: [devices.userId],
+    references: [users.id],
+  }),
+}));
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+export type Device = typeof devices.$inferSelect;
 
 export const sessions = createTable("sessions", {
   id: text("id").primaryKey(),

@@ -70,6 +70,7 @@ export const FriendRequests = ({
                 {friendReq.username ? friendReq.username : friendReq.email}
               </p>
               <button
+                type="submit"
                 onClick={async (): Promise<void> => {
                   const res = await acceptFriendRequest(
                     friendReq.id,
@@ -101,6 +102,7 @@ export const FriendRequests = ({
               </button>
 
               <button
+                type="submit"
                 onClick={async (): Promise<void> => {
                   const res = await rejectFriendRequest(
                     friendReq.id,

@@ -17,19 +17,17 @@ const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
   return bytes.buffer;
 };
 
+const ecdhAlgorithm = { name: "ECDH", namedCurve: "P-256" };
+
 export const generateX25519KeyPair = async (): Promise<CryptoKeyPair> => {
-  return await window.crypto.subtle.generateKey(
-    {
-      name: "ECDH",
-      namedCurve: "X25519",
-    },
-    true,
-    ["deriveKey"],
-  );
+  return await window.crypto.subtle.generateKey(ecdhAlgorithm, true, [
+    "deriveKey",
+  ]);
 };
 
 export const exportPublicKey = async (key: CryptoKey): Promise<string> => {
-  const exported = await window.crypto.subtle.exportKey("raw", key);
+  // Use 'spki' for P-256 public keys for better compatibility
+  const exported = await window.crypto.subtle.exportKey("spki", key);
   return arrayBufferToBase64(exported);
 };
 
@@ -41,12 +39,9 @@ export const exportPrivateKey = async (key: CryptoKey): Promise<string> => {
 export const importPublicKey = async (keyData: string): Promise<CryptoKey> => {
   const buffer = base64ToArrayBuffer(keyData);
   return await window.crypto.subtle.importKey(
-    "raw",
+    "spki",
     buffer,
-    {
-      name: "ECDH",
-      namedCurve: "X25519",
-    },
+    ecdhAlgorithm,
     true,
     [],
   );
@@ -57,10 +52,7 @@ export const importPrivateKey = async (keyData: string): Promise<CryptoKey> => {
   return await window.crypto.subtle.importKey(
     "pkcs8",
     buffer,
-    {
-      name: "ECDH",
-      namedCurve: "X25519",
-    },
+    ecdhAlgorithm,
     true,
     ["deriveKey"],
   );

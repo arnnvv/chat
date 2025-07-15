@@ -63,7 +63,8 @@ export const CustomToast = ({
     </a>
     <div className="flex-shrink-0 border-l border-gray-200">
       <button
-        onClick={(): string | number => toast.dismiss(t.id)}
+        type="button"
+        onMouseDown={(): string | number => toast.dismiss(t.id)}
         className="h-full px-4 py-2 text-sm font-medium text-cyan-400 hover:text-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400"
       >
         Close

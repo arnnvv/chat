@@ -304,7 +304,7 @@ class SHA1 implements Hash {
     let d = this.H[3];
     let e = this.H[4];
     for (let t = 0; t < 80; t++) {
-      let F, K: number;
+      let F: number, K: number;
       if (t < 20) {
         F = ((b & c) ^ (~b & d)) >>> 0;
         K = 0x5a827999;

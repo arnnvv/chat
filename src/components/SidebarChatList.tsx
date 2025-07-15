@@ -87,7 +87,7 @@ export const SidebarChatList = ({
   }, [pathname]);
 
   return (
-    <ul role="list" className="max-h-[25rem] overflow-y-auto -mx-2 space-y-1">
+    <ul className="max-h-[25rem] overflow-y-auto -mx-2 space-y-1">
       {activeChats.sort().map((friend: User): JSX.Element => {
         const unseenMsgCount: number = unseenMessages.filter(
           (unseenMsg: Message): boolean => unseenMsg.senderId === friend.id,

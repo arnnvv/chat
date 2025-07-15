@@ -1,8 +1,14 @@
 "use client";
 
-import { sendMessageAction } from "@/actions";
+import { getRecipientDevices, sendMessageAction } from "@/actions";
 import { Button } from "@/components/ui/button";
-import type { User } from "@/lib/db/schema";
+import type { User, Device } from "@/lib/db/schema";
+import {
+  deriveSharedSecret,
+  encryptMessage,
+  importPrivateKey,
+  importPublicKey,
+} from "@/lib/crypto";
 import {
   type ChangeEvent,
   type JSX,
@@ -29,40 +35,61 @@ export const ChatInput = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const sendMessage = async () => {
+    if (!input.trim()) {
+      toast.error("Cannot send an empty message.");
+      return;
+    }
+    setIsLoading(true);
+
     try {
-      if (!input) {
-        toast.error("Can't send empty message");
-        return;
+      const privateKeyData = localStorage.getItem("privateKey");
+      const senderDeviceId = localStorage.getItem("deviceId");
+
+      if (!privateKeyData || !senderDeviceId) {
+        throw new Error(
+          "Your encryption keys are not available on this device. Please log in again to set them up.",
+        );
       }
-      setIsLoading(true);
+
+      const recipientDevices: Device[] = await getRecipientDevices(receiver.id);
+      if (recipientDevices.length === 0) {
+        throw new Error(
+          "The recipient has no registered devices for secure messaging.",
+        );
+      }
+
+      const ownPrivateKey = await importPrivateKey(privateKeyData);
+
+      const encryptedContent: Record<number, string> = {};
+
+      for (const device of recipientDevices) {
+        const recipientPublicKey = await importPublicKey(device.publicKey);
+        const sharedKey = await deriveSharedSecret(
+          ownPrivateKey,
+          recipientPublicKey,
+        );
+        encryptedContent[device.id] = await encryptMessage(sharedKey, input);
+      }
 
       const res = await sendMessageAction({
-        input,
+        senderDeviceId: parseInt(senderDeviceId, 10),
+        encryptedContent,
         sender,
         receiver,
       });
-      if (!res) throw new Error("Error While Sending Message");
-      if ("message" in res) {
-        toast.success(res.message, {
-          id: "message-sent",
-          action: {
-            label: "Dismiss",
-            onClick: (): string | number => toast.dismiss("message-sent"),
-          },
-        });
-        setInput("");
-        textareaRef.current?.focus();
-      } else if ("error" in res) {
-        toast.error(res.error, {
-          id: "message-error",
-          action: {
-            label: "Dismiss",
-            onClick: (): string | number => toast.dismiss("message-error"),
-          },
-        });
+
+      if (res?.error) {
+        throw new Error(res.error);
       }
+
+      setInput("");
+      textareaRef.current?.focus();
     } catch (e) {
-      toast.error(`Error While Sending Message: ${e}`);
+      const errorMessage =
+        e instanceof Error ? e.message : "An unknown error occurred.";
+      toast.error(`Failed to send message: ${errorMessage}`, {
+        id: "message-error",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +116,7 @@ export const ChatInput = ({
         />
 
         <div
-          onClick={(): void | undefined => textareaRef.current?.focus()}
+          onClick={(): void => textareaRef.current?.focus()}
           className="py-2"
           aria-hidden="true"
         >

@@ -5,7 +5,7 @@
   "scripts": {
     "d": "next dev --turbopack",
     "b": "next build",
-    "st": "next start",
+    "p": "next start",
     "l": "pnpm biome lint --write .",
     "f": "pnpm biome format --write .",
     "ua": "pnpm dlx shadcn@latest add",

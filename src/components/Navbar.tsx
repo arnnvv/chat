@@ -52,10 +52,8 @@ export const Navbar = async (): Promise<JSX.Element | null> => {
             <DropdownMenuItem asChild>
               <SignOutFormComponent action={signOutAction}>
                 <Button variant="ghost" className="w-full justify-start">
-                  <>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
                 </Button>
               </SignOutFormComponent>
             </DropdownMenuItem>

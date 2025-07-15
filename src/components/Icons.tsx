@@ -2,7 +2,7 @@ import { type LucideProps, UserPlus } from "lucide-react";
 import type { JSX } from "react";
 
 export const Icons = {
-  Logo: (props: LucideProps): JSX.Element => (
+  Logo: (_props: LucideProps): JSX.Element => (
     <svg width="50" height="50" viewBox="-100 -100 200 200">
       <defs>
         <path
