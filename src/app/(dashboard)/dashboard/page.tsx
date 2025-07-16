@@ -9,6 +9,7 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { JSX } from "react";
+import { RecentChatPreview } from "@/components/RecentChatPreview";
 
 interface FriendWithLastMsg extends User {
   lastMessage: Message;
@@ -22,34 +23,33 @@ export default async function Pager(): Promise<JSX.Element> {
 
   const friendsWithLastMsg: FriendWithLastMsg[] = await Promise.all(
     friends.map(async (friend: User): Promise<FriendWithLastMsg> => {
-      const lastMessage: Message = (
-        await db
-          .select()
-          .from(messages)
-          .where(
-            or(
-              and(
-                eq(messages.senderId, user.id),
-                eq(messages.recipientId, friend.id),
-              ),
-              and(
-                eq(messages.recipientId, user.id),
-                eq(messages.senderId, friend.id),
-              ),
+      const [lastMessage] = await db
+        .select()
+        .from(messages)
+        .where(
+          or(
+            and(
+              eq(messages.senderId, user.id),
+              eq(messages.recipientId, friend.id),
             ),
-          )
-          .orderBy(desc(messages.createdAt))
-      )[0];
+            and(
+              eq(messages.recipientId, user.id),
+              eq(messages.senderId, friend.id),
+            ),
+          ),
+        )
+        .orderBy(desc(messages.createdAt))
+        .limit(1);
 
       if (!lastMessage)
         return {
           ...friend,
           lastMessage: {
-            id: 0,
-            senderId: 0,
-            recipientId: 0,
+            id: -1,
+            senderId: -1,
+            recipientId: -1,
             content: " ",
-            createdAt: new Date(),
+            createdAt: new Date(0),
           },
         };
       return { ...friend, lastMessage };
@@ -66,7 +66,7 @@ export default async function Pager(): Promise<JSX.Element> {
           (friend: FriendWithLastMsg): JSX.Element => (
             <div
               key={friend.id}
-              className="relative bg-zinc-50 border border-zinc-200 p-3 rounded-md"
+              className="relative bg-zinc-50 border border-zinc-200 p-3 rounded-md mb-2"
             >
               <div className="absolute right-4 inset-y-0 flex items-center">
                 <ChevronRight className="h-7 w-7 text-zinc-400" />
@@ -91,18 +91,11 @@ export default async function Pager(): Promise<JSX.Element> {
                     </Avatar>
                   </div>
                 </div>
-
-                <div>
-                  <h4 className="text-lg font-semibold">{friend.username}</h4>
-                  <p className="mt-1 max-w-md">
-                    <span className="text-zinc-400">
-                      {friend.lastMessage.senderId === user.id
-                        ? "You: "
-                        : `${friend.username}: `}
-                    </span>
-                    {friend.lastMessage.content}
-                  </p>
-                </div>
+                <RecentChatPreview
+                  lastMessage={friend.lastMessage}
+                  sessionUser={user}
+                  friend={friend}
+                />
               </Link>
             </div>
           ),

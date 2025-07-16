@@ -84,7 +84,7 @@ export const MessagesComp = ({
         );
         return await decryptMessage(sharedKey, encryptedForMe);
       }
-    } catch (e) {
+    } catch (_e) {
       return message.content;
     }
   };
