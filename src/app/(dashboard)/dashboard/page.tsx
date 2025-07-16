@@ -1,8 +1,8 @@
 import { getCurrentSession } from "@/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/db";
-import { type Message, messages, type User } from "@/lib/db/schema";
-import { getFriends } from "@/lib/getFriends";
+import { type Message, messages, users } from "@/lib/db/schema";
+import { getFriends, type UserWithDevices } from "@/lib/getFriends";
 import { chatHrefConstructor } from "@/lib/utils";
 import { and, desc, eq, or } from "drizzle-orm";
 import { ChevronRight } from "lucide-react";
@@ -11,7 +11,7 @@ import { redirect } from "next/navigation";
 import type { JSX } from "react";
 import { RecentChatPreview } from "@/components/RecentChatPreview";
 
-interface FriendWithLastMsg extends User {
+interface FriendWithLastMsg extends UserWithDevices {
   lastMessage: Message;
 }
 
@@ -19,10 +19,24 @@ export default async function Pager(): Promise<JSX.Element> {
   const { user, session } = await getCurrentSession();
   if (session === null) return redirect("/login");
 
-  const friends: User[] = await getFriends(user.id);
+  const friends: UserWithDevices[] = await getFriends(user.id);
+
+  const sessionUserWithDevices = await db.query.users.findFirst({
+    where: eq(users.id, user.id),
+    with: {
+      devices: {
+        columns: {
+          id: true,
+          publicKey: true,
+        },
+      },
+    },
+  });
+
+  if (!sessionUserWithDevices) return redirect("/login");
 
   const friendsWithLastMsg: FriendWithLastMsg[] = await Promise.all(
-    friends.map(async (friend: User): Promise<FriendWithLastMsg> => {
+    friends.map(async (friend): Promise<FriendWithLastMsg> => {
       const [lastMessage] = await db
         .select()
         .from(messages)
@@ -52,7 +66,10 @@ export default async function Pager(): Promise<JSX.Element> {
             createdAt: new Date(0),
           },
         };
-      return { ...friend, lastMessage };
+      return {
+        ...friend,
+        lastMessage,
+      };
     }),
   );
 
@@ -93,7 +110,7 @@ export default async function Pager(): Promise<JSX.Element> {
                 </div>
                 <RecentChatPreview
                   lastMessage={friend.lastMessage}
-                  sessionUser={user}
+                  sessionUser={sessionUserWithDevices}
                   friend={friend}
                 />
               </Link>
