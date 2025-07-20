@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { chatHrefConstructor, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { JSX } from "react";
 import { toast } from "sonner";
 
@@ -28,8 +28,7 @@ const ToastContent = ({
 
 export const CustomToast = ({
   t,
-  senderId,
-  sessionId,
+  href,
   senderName,
   senderMessage,
   image,
@@ -38,8 +37,7 @@ export const CustomToast = ({
     id: string | number;
     visible: boolean;
   };
-  sessionId: number;
-  senderId: number;
+  href: string;
   senderName: string;
   senderMessage: string;
   image: string | null;
@@ -52,7 +50,7 @@ export const CustomToast = ({
   >
     <a
       onClick={(): string | number => toast.dismiss(t.id)}
-      href={`/dashboard/chat/${chatHrefConstructor(sessionId, senderId)}`}
+      href={href}
       className="flex-grow p-4"
     >
       <ToastContent

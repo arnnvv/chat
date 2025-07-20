@@ -3,9 +3,9 @@ import { FriendRequestSidebarOption } from "@/components/FriendRequestSidebarOpt
 import { type Icon, Icons } from "@/components/Icons";
 import { SidebarChatList } from "@/components/SidebarChatList";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { FriendRequest, User } from "@/lib/db/schema";
+import type { FriendRequest } from "@/lib/db/schema";
 import { getFriendRequests } from "@/lib/getFriendRequests";
-import { getFriends } from "@/lib/getFriends";
+import { getFriends, type UserWithDevices } from "@/lib/getFriends";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -41,7 +41,7 @@ export default async function page({
   const { user, session } = await getCurrentSession();
   if (session === null) return redirect("/login");
 
-  const friends: User[] = await getFriends(user.id);
+  const friends: UserWithDevices[] = await getFriends(user.id);
   const unsceenReqCount: FriendRequest[] = await getFriendRequests(user.id);
 
   return (

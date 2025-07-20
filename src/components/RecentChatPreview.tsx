@@ -1,17 +1,34 @@
 "use client";
 
-import type { Message, User } from "@/lib/db/schema";
-import type { JSX } from "react";
+import type { Device, Message, User } from "@/lib/db/schema";
+import { type JSX, useState, useEffect, useCallback } from "react";
 import { Lock } from "lucide-react";
+import {
+  decryptMessage,
+  deriveSharedSecret,
+  importPrivateKey,
+  importPublicKey,
+} from "@/lib/crypto";
+
+interface MessagePayload {
+  senderDeviceId: number;
+  recipients: Record<number, string>;
+}
 
 const isEncryptedPayload = (content: string): boolean => {
   try {
     const parsed = JSON.parse(content);
     return "senderDeviceId" in parsed && "recipients" in parsed;
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
+
+export type UserWithDevices = User & {
+  devices: Pick<Device, "id" | "publicKey">[];
+};
+
+const decryptionCache = new Map<string, string>();
 
 export const RecentChatPreview = ({
   lastMessage,
@@ -19,24 +36,104 @@ export const RecentChatPreview = ({
   friend,
 }: {
   lastMessage: Message;
-  sessionUser: User;
-  friend: User;
+  sessionUser: UserWithDevices;
+  friend: UserWithDevices;
 }): JSX.Element => {
-  const isFromSelf = lastMessage.senderId === sessionUser.id;
-  const contentIsEncrypted = isEncryptedPayload(lastMessage.content);
+  const [previewText, setPreviewText] = useState<string | JSX.Element>(
+    "Loading message...",
+  );
 
-  let previewText: string | JSX.Element = lastMessage.content;
+  const decryptPreview = useCallback(async () => {
+    if (lastMessage.id === -1) {
+      setPreviewText("No messages yet.");
+      return;
+    }
 
-  if (contentIsEncrypted) {
-    previewText = (
-      <span className="flex items-center gap-1 text-gray-500 italic">
-        <Lock className="w-4 h-4" />
-        Encrypted Message
-      </span>
-    );
-  } else if (lastMessage.content.trim() === "") {
-    previewText = "No messages yet.";
-  }
+    const cacheKey = `${lastMessage.id}-${lastMessage.content}`;
+    if (decryptionCache.has(cacheKey)) {
+      setPreviewText(decryptionCache.get(cacheKey)!);
+      return;
+    }
+
+    if (!isEncryptedPayload(lastMessage.content)) {
+      setPreviewText(lastMessage.content);
+      decryptionCache.set(cacheKey, lastMessage.content);
+      return;
+    }
+
+    try {
+      const payload: MessagePayload = JSON.parse(lastMessage.content);
+      const myDeviceId = localStorage.getItem("deviceId");
+      const myPrivateKeyData = localStorage.getItem("privateKey");
+
+      if (!myDeviceId || !myPrivateKeyData) {
+        throw new Error("Local device keys not found.");
+      }
+
+      const myPrivateKey = await importPrivateKey(myPrivateKeyData);
+      const senderIsSelf = lastMessage.senderId === sessionUser.id;
+
+      let partnerPublicKey: CryptoKey;
+      let ciphertext: string;
+
+      const ciphertextForThisDevice = payload.recipients[+myDeviceId];
+
+      if (!ciphertextForThisDevice) {
+        if (senderIsSelf) {
+          const friendDeviceIds = Object.keys(payload.recipients);
+          if (friendDeviceIds.length === 0) {
+            throw new Error("No recipients in message payload.");
+          }
+          const friendDeviceId = friendDeviceIds[0];
+          const friendDevice = friend.devices.find(
+            (d) => d.id === Number(friendDeviceId),
+          );
+
+          if (!friendDevice?.publicKey) {
+            throw new Error("Friend's device or public key not found.");
+          }
+          partnerPublicKey = await importPublicKey(friendDevice.publicKey);
+          ciphertext = payload.recipients[Number(friendDeviceId)];
+        } else {
+          throw new Error("Message not encrypted for this device.");
+        }
+      } else {
+        const senderDevice = friend.devices.find(
+          (d) => d.id === payload.senderDeviceId,
+        );
+        if (!senderDevice?.publicKey) {
+          throw new Error("Sender's device or public key not found.");
+        }
+        partnerPublicKey = await importPublicKey(senderDevice.publicKey);
+        ciphertext = ciphertextForThisDevice;
+      }
+
+      const sharedKey = await deriveSharedSecret(
+        myPrivateKey,
+        partnerPublicKey,
+      );
+      const decrypted = await decryptMessage(sharedKey, ciphertext);
+
+      setPreviewText(decrypted);
+      decryptionCache.set(cacheKey, decrypted);
+    } catch (_e) {
+      const fallback = (
+        <span className="flex items-center gap-1 text-gray-500 italic">
+          <Lock className="w-4 h-4" />
+          Encrypted Message
+        </span>
+      );
+      setPreviewText(fallback);
+      decryptionCache.set(cacheKey, "🔒 Encrypted Message");
+    }
+  }, [lastMessage, sessionUser, friend]);
+
+  useEffect(() => {
+    decryptPreview();
+  }, [decryptPreview]);
+
+  const isFromSelf =
+    lastMessage.id !== -1 && lastMessage.senderId === sessionUser.id;
 
   return (
     <div>

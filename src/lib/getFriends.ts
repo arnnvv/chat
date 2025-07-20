@@ -1,9 +1,13 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "./db";
-import type { FriendRequest, User } from "./db/schema";
-import { resolveIdstoUsers } from "./resolveIdsToUsers";
+import type { Device, FriendRequest, User } from "./db/schema";
+import { users } from "./db/schema";
 
-export const getFriends = async (id: number): Promise<User[]> => {
+export type UserWithDevices = User & {
+  devices: Pick<Device, "id" | "publicKey">[];
+};
+
+export const getFriends = async (id: number): Promise<UserWithDevices[]> => {
   const friendships: FriendRequest[] = await db.query.friendRequests.findMany({
     where: (requests, { and, or }) =>
       and(
@@ -18,6 +22,21 @@ export const getFriends = async (id: number): Promise<User[]> => {
       : friendship.requesterId,
   );
 
-  const friends: User[] = await resolveIdstoUsers(friendIds);
+  if (friendIds.length === 0) {
+    return [];
+  }
+
+  const friends: UserWithDevices[] = await db.query.users.findMany({
+    where: inArray(users.id, friendIds),
+    with: {
+      devices: {
+        columns: {
+          id: true,
+          publicKey: true,
+        },
+      },
+    },
+  });
+
   return friends;
 };

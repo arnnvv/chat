@@ -48,12 +48,12 @@ export async function getUserFromGmail(email: string): Promise<User | null> {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.username, `google-${email}`))
+      .where(eq(users.email, email))
       .limit(1);
 
     return user || null;
   } catch (error) {
-    console.error("Error fetching user by Google ID:", error);
+    console.error(`Error fetching user by email: ${error}`);
     throw error;
   }
 }
