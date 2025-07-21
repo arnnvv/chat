@@ -1,19 +1,19 @@
 "use client";
 
-import { getRecipientDevices } from "@/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   decryptMessage,
   deriveSharedSecret,
   importPublicKey,
 } from "@/lib/crypto";
-import type { Message, User } from "@/lib/db/schema";
+import type { Message } from "@/lib/db/schema";
 import { pusherClient } from "@/lib/pusher";
 import { cn, toPusherKey } from "@/lib/utils";
 import { format } from "date-fns";
 import { type JSX, type RefObject, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { cryptoStore } from "@/lib/crypto-store";
+import type { UserWithDevices } from "@/lib/getFriends";
 
 interface DecryptedMessage extends Message {
   decryptedContent: string | null;
@@ -27,7 +27,7 @@ export const MessagesComp = ({
   initialMessages,
 }: {
   chatId: string;
-  chatPartner: User;
+  chatPartner: UserWithDevices;
   sessionId: number;
   sessionImg: string | null | undefined;
   initialMessages: Message[];
@@ -102,7 +102,8 @@ export const MessagesComp = ({
         cryptoKeysRef.current.ownPrivateKey = privateKey;
         cryptoKeysRef.current.ownDeviceId = deviceId;
 
-        const partnerDeviceList = await getRecipientDevices(chatPartner.id);
+        const partnerDeviceList = chatPartner.devices;
+
         await Promise.all(
           partnerDeviceList.map(async (device) => {
             const importedKey = await importPublicKey(device.publicKey);
@@ -129,7 +130,7 @@ export const MessagesComp = ({
     };
 
     setupAndDecrypt();
-  }, [chatPartner.id, initialMessages, sessionId]);
+  }, [chatPartner.devices, chatPartner.id, initialMessages, sessionId]);
 
   useEffect(() => {
     const pusherMessageHandler = async (message: Message) => {

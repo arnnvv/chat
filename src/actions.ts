@@ -11,7 +11,6 @@ import {
   type NewMessage,
   type User,
   users,
-  type Device,
   devices,
 } from "./lib/db/schema";
 import { db } from "./lib/db";
@@ -965,22 +964,4 @@ export async function registerDeviceAction(
       message: "Failed to register device. Please try again.",
     };
   }
-}
-
-export async function getRecipientDevices(
-  recipientId: number,
-): Promise<Device[]> {
-  if (!globalGETRateLimit()) {
-    throw new Error("Rate limit exceeded");
-  }
-  const { user } = await getCurrentSession();
-  if (!user) {
-    throw new Error("Not authenticated");
-  }
-
-  const recipientDevices = await db.query.devices.findMany({
-    where: eq(devices.userId, recipientId),
-  });
-
-  return recipientDevices;
 }

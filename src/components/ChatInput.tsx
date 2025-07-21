@@ -1,8 +1,8 @@
 "use client";
 
-import { getRecipientDevices, sendMessageAction } from "@/actions";
+import { sendMessageAction } from "@/actions";
 import { Button } from "@/components/ui/button";
-import type { User, Device } from "@/lib/db/schema";
+import type { User } from "@/lib/db/schema";
 import {
   deriveSharedSecret,
   encryptMessage,
@@ -20,16 +20,17 @@ import {
 import ReactTextareaAutosize from "react-textarea-autosize";
 import { toast } from "sonner";
 import { cryptoStore } from "@/lib/crypto-store";
+import type { UserWithDevices } from "@/lib/getFriends";
 
 export const ChatInput = ({
   sender,
   receiver,
 }: {
   sender: Omit<User, "password">;
-  receiver: User;
+  receiver: UserWithDevices;
 }): JSX.Element => {
-  const textareaRef: RefObject<HTMLAreaElement | null> =
-    useRef<HTMLAreaElement | null>(null);
+  const textareaRef: RefObject<HTMLTextAreaElement | null> =
+    useRef<HTMLTextAreaElement | null>(null);
 
   const [input, setInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -51,7 +52,8 @@ export const ChatInput = ({
         );
       }
 
-      const recipientDevices: Device[] = await getRecipientDevices(receiver.id);
+      const recipientDevices = receiver.devices;
+
       if (recipientDevices.length === 0) {
         throw new Error(
           "The recipient has no registered devices for secure messaging.",

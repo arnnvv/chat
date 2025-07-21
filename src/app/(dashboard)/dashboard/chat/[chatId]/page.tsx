@@ -9,6 +9,7 @@ import { and, eq, or } from "drizzle-orm";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import type { JSX } from "react";
+import type { UserWithDevices } from "@/lib/getFriends";
 
 export const generateMetadata = async ({
   params,
@@ -51,9 +52,18 @@ export default async function l({
   if (user.id !== userId1 && user.id !== userId2) notFound();
   const chatPartnerId: number = user.id === userId1 ? userId2 : userId1;
 
-  const chatPartner: User | undefined = await db.query.users.findFirst({
-    where: eq(users.id, chatPartnerId),
-  });
+  const chatPartner: UserWithDevices | undefined =
+    await db.query.users.findFirst({
+      where: eq(users.id, chatPartnerId),
+      with: {
+        devices: {
+          columns: {
+            id: true,
+            publicKey: true,
+          },
+        },
+      },
+    });
 
   if (!chatPartner) throw new Error("Chat partner not found");
 
