@@ -65,7 +65,7 @@ export const deriveSharedSecret = async (
 ): Promise<CryptoKey> => {
   return await window.crypto.subtle.deriveKey(
     {
-      name: "ECDH",
+      name: "X25519",
       public: publicKey,
     },
     privateKey,
