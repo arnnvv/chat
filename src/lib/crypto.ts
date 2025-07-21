@@ -73,7 +73,7 @@ export const deriveSharedSecret = async (
       name: "AES-GCM",
       length: 256,
     },
-    true,
+    false,
     ["encrypt", "decrypt"],
   );
 };
