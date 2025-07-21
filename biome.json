@@ -25,6 +25,9 @@
       "suspicious": {
         "noDuplicateProperties": "off",
         "noExplicitAny": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off"
       }
     }
   },

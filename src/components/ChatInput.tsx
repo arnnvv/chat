@@ -6,7 +6,6 @@ import type { User, Device } from "@/lib/db/schema";
 import {
   deriveSharedSecret,
   encryptMessage,
-  importPrivateKey,
   importPublicKey,
 } from "@/lib/crypto";
 import {
@@ -20,6 +19,7 @@ import {
 } from "react";
 import ReactTextareaAutosize from "react-textarea-autosize";
 import { toast } from "sonner";
+import { cryptoStore } from "@/lib/crypto-store";
 
 export const ChatInput = ({
   sender,
@@ -42,10 +42,10 @@ export const ChatInput = ({
     setIsLoading(true);
 
     try {
-      const privateKeyData = localStorage.getItem("privateKey");
-      const senderDeviceId = localStorage.getItem("deviceId");
+      const ownPrivateKey = await cryptoStore.getKey("privateKey");
+      const senderDeviceId = await cryptoStore.getDeviceId();
 
-      if (!privateKeyData || !senderDeviceId) {
+      if (!ownPrivateKey || !senderDeviceId) {
         throw new Error(
           "Your encryption keys are not available on this device. Please log in again to set them up.",
         );
@@ -57,8 +57,6 @@ export const ChatInput = ({
           "The recipient has no registered devices for secure messaging.",
         );
       }
-
-      const ownPrivateKey = await importPrivateKey(privateKeyData);
 
       const encryptedContent: Record<number, string> = {};
 

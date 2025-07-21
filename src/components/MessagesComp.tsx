@@ -5,7 +5,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   decryptMessage,
   deriveSharedSecret,
-  importPrivateKey,
   importPublicKey,
 } from "@/lib/crypto";
 import type { Message, User } from "@/lib/db/schema";
@@ -14,6 +13,7 @@ import { cn, toPusherKey } from "@/lib/utils";
 import { format } from "date-fns";
 import { type JSX, type RefObject, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { cryptoStore } from "@/lib/crypto-store";
 
 interface DecryptedMessage extends Message {
   decryptedContent: string | null;
@@ -94,13 +94,12 @@ export const MessagesComp = ({
       try {
         if (cryptoKeysRef.current.isSetup) return;
 
-        const privateKeyData = localStorage.getItem("privateKey");
-        const deviceId = localStorage.getItem("deviceId");
-        if (!privateKeyData || !deviceId)
+        const privateKey = await cryptoStore.getKey("privateKey");
+        const deviceId = await cryptoStore.getDeviceId();
+        if (!privateKey || !deviceId)
           throw new Error("Local device keys not found.");
 
-        cryptoKeysRef.current.ownPrivateKey =
-          await importPrivateKey(privateKeyData);
+        cryptoKeysRef.current.ownPrivateKey = privateKey;
         cryptoKeysRef.current.ownDeviceId = deviceId;
 
         const partnerDeviceList = await getRecipientDevices(chatPartner.id);

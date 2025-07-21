@@ -6,9 +6,9 @@ import { Lock } from "lucide-react";
 import {
   decryptMessage,
   deriveSharedSecret,
-  importPrivateKey,
   importPublicKey,
 } from "@/lib/crypto";
+import { cryptoStore } from "@/lib/crypto-store";
 
 interface MessagePayload {
   senderDeviceId: number;
@@ -63,14 +63,13 @@ export const RecentChatPreview = ({
 
     try {
       const payload: MessagePayload = JSON.parse(lastMessage.content);
-      const myDeviceId = localStorage.getItem("deviceId");
-      const myPrivateKeyData = localStorage.getItem("privateKey");
+      const myDeviceId = await cryptoStore.getDeviceId();
+      const myPrivateKey = await cryptoStore.getKey("privateKey");
 
-      if (!myDeviceId || !myPrivateKeyData) {
+      if (!myDeviceId || !myPrivateKey) {
         throw new Error("Local device keys not found.");
       }
 
-      const myPrivateKey = await importPrivateKey(myPrivateKeyData);
       const senderIsSelf = lastMessage.senderId === sessionUser.id;
 
       let partnerPublicKey: CryptoKey;

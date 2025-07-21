@@ -3,11 +3,7 @@
 import { type FormEvent, useState, useTransition, type JSX } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  generateX25519KeyPair,
-  exportPublicKey,
-  exportPrivateKey,
-} from "@/lib/crypto";
+import { generateX25519KeyPair, exportPublicKey } from "@/lib/crypto";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { KeyRound } from "lucide-react";
 import { registerDeviceAction } from "@/actions";
+import { cryptoStore } from "@/lib/crypto-store";
 
 export default function SetupDevicePage(): JSX.Element {
   const router = useRouter();
@@ -38,7 +35,6 @@ export default function SetupDevicePage(): JSX.Element {
       try {
         const keyPair = await generateX25519KeyPair();
         const publicKeyB64 = await exportPublicKey(keyPair.publicKey);
-        const privateKeyB64 = await exportPrivateKey(keyPair.privateKey);
 
         const result = await registerDeviceAction(publicKeyB64, deviceName);
 
@@ -48,8 +44,8 @@ export default function SetupDevicePage(): JSX.Element {
             throw new Error("Could not retrieve device ID from server.");
           }
 
-          localStorage.setItem("privateKey", privateKeyB64);
-          localStorage.setItem("deviceId", deviceId);
+          await cryptoStore.saveKey("privateKey", keyPair.privateKey);
+          await cryptoStore.saveDeviceId(deviceId);
 
           toast.success("Device setup complete!");
 

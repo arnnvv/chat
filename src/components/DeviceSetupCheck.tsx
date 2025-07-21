@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type JSX, useEffect, useState, type ReactNode } from "react";
 import { Spinner } from "./ui/spinner";
+import { cryptoStore } from "@/lib/crypto-store";
 
 export function DeviceSetupCheck({
   children,
@@ -13,16 +14,20 @@ export function DeviceSetupCheck({
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const privateKey = localStorage.getItem("privateKey");
-      const deviceId = localStorage.getItem("deviceId");
+    const checkDeviceSetup = async () => {
+      if (typeof window !== "undefined") {
+        const privateKey = await cryptoStore.getKey("privateKey");
+        const deviceId = await cryptoStore.getDeviceId();
 
-      if (!privateKey || !deviceId) {
-        router.push("/setup-device");
-      } else {
-        setIsChecking(false);
+        if (!privateKey || !deviceId) {
+          router.push("/setup-device");
+        } else {
+          setIsChecking(false);
+        }
       }
-    }
+    };
+
+    checkDeviceSetup();
   }, [router]);
 
   if (isChecking) {

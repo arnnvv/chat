@@ -23,7 +23,7 @@ const ecdhAlgorithm = {
 };
 
 export const generateX25519KeyPair = async (): Promise<CryptoKeyPair> => {
-  return await window.crypto.subtle.generateKey(ecdhAlgorithm, true, [
+  return await window.crypto.subtle.generateKey(ecdhAlgorithm, false, [
     "deriveKey",
   ]);
 };
