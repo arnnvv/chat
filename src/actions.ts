@@ -748,6 +748,7 @@ export const addFriendAction = async (
       {
         senderId: user.id,
         senderEmail: user.email,
+        senderName: user.username,
       },
     );
 

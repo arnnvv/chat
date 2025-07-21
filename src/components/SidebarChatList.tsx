@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { type JSX, useEffect, useState } from "react";
+import { type JSX, useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { pusherClient } from "@/lib/pusher";
 import { chatHrefConstructor, toPusherKey } from "@/lib/utils";
@@ -9,12 +9,12 @@ import type { Message } from "@/lib/db/schema";
 import {
   decryptMessage,
   deriveSharedSecret,
-  importPrivateKey,
   importPublicKey,
 } from "@/lib/crypto";
 import type { UserWithDevices } from "@/lib/getFriends";
 import { CustomToast } from "./CustomToast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cryptoStore } from "@/lib/crypto-store";
 
 interface ExtendedMessageProps extends Message {
   senderName: string;
@@ -33,89 +33,122 @@ export const SidebarChatList = ({
   const pathname: string | null = usePathname();
   const router = useRouter();
 
-  useEffect((): (() => void) => {
-    const chatHandler = async (extendedMessage: ExtendedMessageProps) => {
-      const shouldNotify: boolean =
-        pathname !==
-        `/dashboard/chat/${chatHrefConstructor(
-          sessionId,
-          extendedMessage.senderId,
-        )}`;
+  const cryptoKeysRef = useRef<{
+    ownPrivateKey: CryptoKey | null;
+    ownDeviceId: string | null;
+  }>({
+    ownPrivateKey: null,
+    ownDeviceId: null,
+  });
 
-      if (!shouldNotify) return;
+  useEffect(() => {
+    const initializeCryptoAndPusher = async () => {
+      const privateKey = await cryptoStore.getKey("privateKey");
+      const deviceId = await cryptoStore.getDeviceId();
 
-      let decryptedContent = "[Encrypted Message]";
-      try {
-        const payload = JSON.parse(extendedMessage.content);
-        const { senderDeviceId } = payload;
-
-        const sender = activeChats.find(
-          (friend) => friend.id === extendedMessage.senderId,
+      if (!privateKey || !deviceId) {
+        console.error(
+          "SidebarChatList: Crypto keys not found. Toasts will not be decrypted.",
         );
-        const senderDevice = sender?.devices.find(
-          (d) => d.id === senderDeviceId,
-        );
-
-        const privateKeyData = localStorage.getItem("privateKey");
-
-        if (senderDevice?.publicKey && privateKeyData) {
-          const ownPrivateKey = await importPrivateKey(privateKeyData);
-          const senderPublicKey = await importPublicKey(senderDevice.publicKey);
-          const sharedKey = await deriveSharedSecret(
-            ownPrivateKey,
-            senderPublicKey,
-          );
-
-          const ownDeviceId = localStorage.getItem("deviceId");
-          const encryptedForMe = payload.recipients[ownDeviceId!];
-
-          if (encryptedForMe) {
-            decryptedContent = await decryptMessage(sharedKey, encryptedForMe);
-          }
-        }
-      } catch (e) {
-        console.error("Failed to decrypt toast notification:", e);
-        decryptedContent = "You received a new message.";
+      } else {
+        cryptoKeysRef.current = {
+          ownPrivateKey: privateKey,
+          ownDeviceId: deviceId,
+        };
       }
 
-      toast.custom(
-        (t: any): JSX.Element => (
-          <CustomToast
-            t={t}
-            href={`/dashboard/chat/${chatHrefConstructor(
-              sessionId,
-              extendedMessage.senderId,
-            )}`}
-            senderMessage={decryptedContent}
-            senderName={extendedMessage.senderName}
-            image={extendedMessage.senderImage}
-          />
-        ),
-      );
+      const chatHandler = async (extendedMessage: ExtendedMessageProps) => {
+        const shouldNotify: boolean =
+          pathname !==
+          `/dashboard/chat/${chatHrefConstructor(
+            sessionId,
+            extendedMessage.senderId,
+          )}`;
 
-      setUnseenMessages((prev: Message[]): Message[] => [
-        ...prev,
-        extendedMessage,
-      ]);
+        if (!shouldNotify) return;
+
+        let decryptedContent = "You received a new message.";
+        const { ownPrivateKey, ownDeviceId } = cryptoKeysRef.current;
+
+        if (ownPrivateKey && ownDeviceId) {
+          try {
+            const payload = JSON.parse(extendedMessage.content);
+            const { senderDeviceId, recipients } = payload;
+
+            const encryptedForMe = recipients[ownDeviceId];
+            if (!encryptedForMe) {
+              throw new Error("Message in toast not for this device.");
+            }
+
+            const sender = activeChats.find(
+              (friend) => friend.id === extendedMessage.senderId,
+            );
+            const senderDevice = sender?.devices.find(
+              (d) => d.id === senderDeviceId,
+            );
+
+            if (!senderDevice?.publicKey) {
+              throw new Error(
+                "Sender public key not found for toast decryption.",
+              );
+            }
+
+            const senderPublicKey = await importPublicKey(
+              senderDevice.publicKey,
+            );
+            const sharedKey = await deriveSharedSecret(
+              ownPrivateKey,
+              senderPublicKey,
+            );
+
+            decryptedContent = await decryptMessage(sharedKey, encryptedForMe);
+          } catch (e) {
+            console.error("Failed to decrypt toast notification:", e);
+            decryptedContent = "You received an encrypted message.";
+          }
+        }
+
+        toast.custom(
+          (t: any): JSX.Element => (
+            <CustomToast
+              t={t}
+              href={`/dashboard/chat/${chatHrefConstructor(
+                sessionId,
+                extendedMessage.senderId,
+              )}`}
+              senderMessage={decryptedContent}
+              senderName={extendedMessage.senderName}
+              image={extendedMessage.senderImage}
+            />
+          ),
+        );
+
+        setUnseenMessages((prev: Message[]): Message[] => [
+          ...prev,
+          extendedMessage,
+        ]);
+      };
+
+      const newFriendHandler = (newFriend: UserWithDevices) => {
+        setActiveChats((prev: UserWithDevices[]): UserWithDevices[] => [
+          ...prev,
+          newFriend,
+        ]);
+      };
+
+      pusherClient.subscribe(toPusherKey(`user:${sessionId}:chats`));
+      pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`));
+      pusherClient.bind("new_message", chatHandler);
+      pusherClient.bind("new_friend", newFriendHandler);
     };
 
-    const newFriendHandler = (newFriend: UserWithDevices) => {
-      setActiveChats((prev: UserWithDevices[]): UserWithDevices[] => [
-        ...prev,
-        newFriend,
-      ]);
-    };
-
-    pusherClient.subscribe(toPusherKey(`user:${sessionId}:chats`));
-    pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`));
-    pusherClient.bind("new_message", chatHandler);
-    pusherClient.bind("new_friend", newFriendHandler);
+    initializeCryptoAndPusher();
 
     return () => {
       pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:chats`));
       pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:friends`));
-      pusherClient.unbind("new_message", chatHandler);
-      pusherClient.unbind("new_friend", newFriendHandler);
+      pusherClient.unbind("new_message");
+      pusherClient.unbind("new_friend");
     };
   }, [sessionId, router, pathname, activeChats]);
 
