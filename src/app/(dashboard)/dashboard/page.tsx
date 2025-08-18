@@ -1,25 +1,25 @@
 import { getCurrentSession } from "@/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/db";
-import { type Message, messages, users } from "@/lib/db/schema";
-import { getFriends, type UserWithDevices } from "@/lib/getFriends";
+import { users } from "@/lib/db/schema";
+import {
+  getFriendsWithLastMessage,
+  type FriendWithLastMsg,
+} from "@/lib/getFriends";
 import { chatHrefConstructor } from "@/lib/utils";
-import { and, desc, eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { JSX } from "react";
 import { RecentChatPreview } from "@/components/RecentChatPreview";
 
-interface FriendWithLastMsg extends UserWithDevices {
-  lastMessage: Message;
-}
-
 export default async function Pager(): Promise<JSX.Element> {
   const { user, session } = await getCurrentSession();
   if (session === null) return redirect("/login");
 
-  const friends: UserWithDevices[] = await getFriends(user.id);
+  const friendsWithLastMsg: FriendWithLastMsg[] =
+    await getFriendsWithLastMessage(user.id);
 
   const sessionUserWithDevices = await db.query.users.findFirst({
     where: eq(users.id, user.id),
@@ -34,44 +34,6 @@ export default async function Pager(): Promise<JSX.Element> {
   });
 
   if (!sessionUserWithDevices) return redirect("/login");
-
-  const friendsWithLastMsg: FriendWithLastMsg[] = await Promise.all(
-    friends.map(async (friend): Promise<FriendWithLastMsg> => {
-      const [lastMessage] = await db
-        .select()
-        .from(messages)
-        .where(
-          or(
-            and(
-              eq(messages.senderId, user.id),
-              eq(messages.recipientId, friend.id),
-            ),
-            and(
-              eq(messages.recipientId, user.id),
-              eq(messages.senderId, friend.id),
-            ),
-          ),
-        )
-        .orderBy(desc(messages.createdAt))
-        .limit(1);
-
-      if (!lastMessage)
-        return {
-          ...friend,
-          lastMessage: {
-            id: -1,
-            senderId: -1,
-            recipientId: -1,
-            content: " ",
-            createdAt: new Date(0),
-          },
-        };
-      return {
-        ...friend,
-        lastMessage,
-      };
-    }),
-  );
 
   return (
     <div className="container py-12">

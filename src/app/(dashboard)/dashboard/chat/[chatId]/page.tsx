@@ -1,11 +1,10 @@
-import { getCurrentSession } from "@/actions";
+import { getCurrentSession, getPaginatedMessages } from "@/actions";
 import { ChatInput } from "@/components/ChatInput";
 import { MessagesComp } from "@/components/MessagesComp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { db } from "@/lib/db";
-import { type Message, messages, type User, users } from "@/lib/db/schema";
-import { validateMessages } from "@/lib/validate";
-import { and, eq, or } from "drizzle-orm";
+import { type Message, type User, users } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import type { JSX } from "react";
@@ -68,28 +67,10 @@ export default async function l({
   if (!chatPartner) throw new Error("Chat partner not found");
 
   try {
-    if (!user.id || !chatPartner.id) throw new Error("Invalid chat id");
-    const chatMessages: Message[] | undefined =
-      (await db.query.messages.findMany({
-        where: or(
-          and(
-            eq(messages.recipientId, chatPartner.id),
-            eq(messages.senderId, user.id),
-          ),
-          and(
-            eq(messages.recipientId, user.id),
-            eq(messages.senderId, chatPartner.id),
-          ),
-        ),
-        orderBy: (messages, { asc }) => [asc(messages.createdAt)],
-      })) as Message[] | undefined;
-    if (!chatMessages) throw new Error("Chat messages not found");
-    const reversedChatMessages: Message[] = chatMessages.reverse();
-    if (!validateMessages(reversedChatMessages))
-      throw new Error("Invalid messages");
-    initialMessages = reversedChatMessages;
+    const { messages: initialBatch } = await getPaginatedMessages(chatId, null);
+    initialMessages = initialBatch.reverse();
   } catch (e) {
-    throw new Error(`Failed to fetch chat messages ${e}`);
+    throw new Error(`Failed to fetch initial chat messages: ${e}`);
   }
 
   return (

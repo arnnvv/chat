@@ -12,6 +12,7 @@ import {
   type User,
   users,
   devices,
+  type Message,
 } from "./lib/db/schema";
 import { db } from "./lib/db";
 import {
@@ -27,7 +28,7 @@ import {
   verifyPasswordStrength,
 } from "./lib/password";
 import { deleteSessionTokenCookie, setSessionTokenCookie } from "./lib/session";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, lt, or } from "drizzle-orm";
 import { utapi } from "./lib/upload";
 import type { UploadFileResult } from "uploadthing/types";
 import type { ActionResult } from "./lib/formComtrol";
@@ -679,7 +680,7 @@ export async function uploadFile(fd: FormData): Promise<ActionResult> {
   try {
     await db
       .update(users)
-      .set({ picture: uploadedFile.data.url })
+      .set({ picture: uploadedFile.data.ufsUrl })
       .where(eq(users.id, user.id));
   } catch (e) {
     return {
@@ -689,7 +690,7 @@ export async function uploadFile(fd: FormData): Promise<ActionResult> {
   }
   return {
     success: true,
-    message: uploadedFile.data.url,
+    message: uploadedFile.data.ufsUrl,
   };
 }
 
@@ -964,4 +965,49 @@ export async function registerDeviceAction(
       message: "Failed to register device. Please try again.",
     };
   }
+}
+
+const MESSAGES_PER_PAGE = 50;
+
+export async function getPaginatedMessages(
+  chatId: string,
+  cursor: string | null,
+): Promise<{ messages: Message[]; nextCursor: string | null }> {
+  const { user } = await getCurrentSession();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const [userId1, userId2] = chatId.split("--").map(Number);
+  const chatPartnerId = user.id === userId1 ? userId2 : userId1;
+
+  const query = db
+    .select()
+    .from(messages)
+    .where(
+      and(
+        or(
+          and(
+            eq(messages.senderId, user.id),
+            eq(messages.recipientId, chatPartnerId),
+          ),
+          and(
+            eq(messages.senderId, chatPartnerId),
+            eq(messages.recipientId, user.id),
+          ),
+        ),
+        cursor ? lt(messages.createdAt, new Date(cursor)) : undefined,
+      ),
+    )
+    .orderBy(desc(messages.createdAt))
+    .limit(MESSAGES_PER_PAGE);
+
+  const fetchedMessages = await query;
+
+  let nextCursor: string | null = null;
+  if (fetchedMessages.length === MESSAGES_PER_PAGE) {
+    nextCursor = fetchedMessages[MESSAGES_PER_PAGE - 1].createdAt.toISOString();
+  }
+
+  return { messages: fetchedMessages, nextCursor };
 }

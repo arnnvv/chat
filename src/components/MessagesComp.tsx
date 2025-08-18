@@ -10,10 +10,19 @@ import type { Message } from "@/lib/db/schema";
 import { pusherClient } from "@/lib/pusher";
 import { cn, toPusherKey } from "@/lib/utils";
 import { format } from "date-fns";
-import { type JSX, type RefObject, useEffect, useRef, useState } from "react";
+import {
+  type JSX,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { toast } from "sonner";
 import { cryptoStore } from "@/lib/crypto-store";
 import type { UserWithDevices } from "@/lib/getFriends";
+import { getPaginatedMessages } from "@/actions";
+import { Loader2 } from "lucide-react";
 
 interface DecryptedMessage extends Message {
   decryptedContent: string | null;
@@ -33,10 +42,19 @@ export const MessagesComp = ({
   initialMessages: Message[];
 }): JSX.Element => {
   const scrollRef: RefObject<HTMLDivElement | null> = useRef(null);
+  const loaderRef = useRef<HTMLDivElement>(null);
 
   const [decryptedMessages, setDecryptedMessages] = useState<
     DecryptedMessage[]
   >(() => initialMessages.map((msg) => ({ ...msg, decryptedContent: null })));
+
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(initialMessages.length > 0);
+  const cursorRef = useRef<string | null>(
+    initialMessages.length > 0
+      ? initialMessages[0].createdAt.toISOString()
+      : null,
+  );
 
   const cryptoKeysRef = useRef<{
     ownPrivateKey: CryptoKey | null;
@@ -89,6 +107,36 @@ export const MessagesComp = ({
     }
   };
 
+  const loadMoreMessages = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+
+    try {
+      const { messages: newMessages, nextCursor } = await getPaginatedMessages(
+        chatId,
+        cursorRef.current,
+      );
+
+      const decryptedNewMessages = await Promise.all(
+        newMessages.map(async (msg) => ({
+          ...msg,
+          decryptedContent: await decryptMessageContent(msg),
+        })),
+      );
+
+      setDecryptedMessages((prev) => [
+        ...prev,
+        ...decryptedNewMessages.reverse(),
+      ]);
+      cursorRef.current = nextCursor;
+      setHasMore(nextCursor !== null);
+    } catch (_error) {
+      toast.error("Failed to load older messages.");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [chatId, hasMore, isLoadingMore, decryptMessageContent]);
+
   useEffect(() => {
     const setupAndDecrypt = async () => {
       try {
@@ -135,7 +183,6 @@ export const MessagesComp = ({
   useEffect(() => {
     const pusherMessageHandler = async (message: Message) => {
       if (!cryptoKeysRef.current.isSetup) {
-        console.warn("Pusher message received before crypto setup, ignoring.");
         return;
       }
       const decryptedContent = await decryptMessageContent(message);
@@ -153,6 +200,27 @@ export const MessagesComp = ({
       pusherClient.unbind("incoming-message", pusherMessageHandler);
     };
   }, [chatId, sessionId]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMoreMessages();
+        }
+      },
+      { threshold: 1.0 },
+    );
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [loadMoreMessages]);
 
   return (
     <div
@@ -224,6 +292,11 @@ export const MessagesComp = ({
           </div>
         );
       })}
+      {hasMore && (
+        <div ref={loaderRef} className="flex justify-center my-4">
+          {isLoadingMore && <Loader2 className="w-6 h-6 animate-spin" />}
+        </div>
+      )}
     </div>
   );
 };
