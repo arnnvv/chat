@@ -1,13 +1,9 @@
+import { inArray } from "drizzle-orm";
 import { db } from "./db";
-import type { User } from "./db/schema";
+import { users, type User } from "./db/schema";
 
 export const resolveIdstoUsers = async (ids: number[]): Promise<User[]> => {
-  const users: User[] = [];
-  for (const id of ids) {
-    const user = (await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.id, id),
-    })) as User | undefined;
-    if (user) users.push(user);
-  }
-  return users;
+  if (ids.length === 0) return [];
+  const userList = await db.select().from(users).where(inArray(users.id, ids));
+  return userList;
 };
