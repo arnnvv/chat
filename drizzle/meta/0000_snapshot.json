@@ -1,9 +1,134 @@
 {
-  "id": "5c8d4295-6663-426c-ad3b-49a9d7044374",
+  "id": "e671fec4-4b05-4fd7-9a7a-3f678806d219",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.chat_device_verifications": {
+      "name": "chat_device_verifications",
+      "schema": "",
+      "columns": {
+        "verifier_user_id": {
+          "name": "verifier_user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verified_device_id": {
+          "name": "verified_device_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "chat_device_verifications_verifier_user_id_chat_users_id_fk": {
+          "name": "chat_device_verifications_verifier_user_id_chat_users_id_fk",
+          "tableFrom": "chat_device_verifications",
+          "tableTo": "chat_users",
+          "columnsFrom": ["verifier_user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "chat_device_verifications_verified_device_id_chat_devices_id_fk": {
+          "name": "chat_device_verifications_verified_device_id_chat_devices_id_fk",
+          "tableFrom": "chat_device_verifications",
+          "tableTo": "chat_devices",
+          "columnsFrom": ["verified_device_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "chat_device_verifications_verifier_user_id_verified_device_id_pk": {
+          "name": "chat_device_verifications_verifier_user_id_verified_device_id_pk",
+          "columns": ["verifier_user_id", "verified_device_id"]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.chat_devices": {
+      "name": "chat_devices",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "public_key": {
+          "name": "public_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "user_id_pub_key_idx": {
+          "name": "user_id_pub_key_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "public_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "chat_devices_user_id_chat_users_id_fk": {
+          "name": "chat_devices_user_id_chat_users_id_fk",
+          "tableFrom": "chat_devices",
+          "tableTo": "chat_users",
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.chat_email_verification_request": {
       "name": "chat_email_verification_request",
       "schema": "",

@@ -13,6 +13,7 @@ import {
   users,
   devices,
   type Message,
+  deviceVerifications,
 } from "./lib/db/schema";
 import { db } from "./lib/db";
 import {
@@ -28,7 +29,7 @@ import {
   verifyPasswordStrength,
 } from "./lib/password";
 import { deleteSessionTokenCookie, setSessionTokenCookie } from "./lib/session";
-import { and, desc, eq, lt, or } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
 import { utapi } from "./lib/upload";
 import type { UploadFileResult } from "uploadthing/types";
 import type { ActionResult } from "./lib/formComtrol";
@@ -1010,4 +1011,72 @@ export async function getPaginatedMessages(
   }
 
   return { messages: fetchedMessages, nextCursor };
+}
+
+export async function getVerifiedDeviceIdsForContact(
+  contactUserId: number,
+): Promise<number[]> {
+  const { user } = await getCurrentSession();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const contactDevices = await db.query.devices.findMany({
+    where: eq(devices.userId, contactUserId),
+    columns: { id: true },
+  });
+
+  if (contactDevices.length === 0) {
+    return [];
+  }
+
+  const contactDeviceIds = contactDevices.map((d) => d.id);
+
+  const verifications = await db
+    .select({ verifiedDeviceId: deviceVerifications.verifiedDeviceId })
+    .from(deviceVerifications)
+    .where(
+      and(
+        eq(deviceVerifications.verifierUserId, user.id),
+        inArray(deviceVerifications.verifiedDeviceId, contactDeviceIds),
+      ),
+    );
+
+  return verifications.map((v) => v.verifiedDeviceId);
+}
+
+/**
+ * Marks a set of devices as trusted by the current user.
+ * @param deviceIdsToVerify An array of device IDs to mark as verified.
+ * @returns ActionResult indicating success or failure.
+ */
+export async function verifyDevicesAction(
+  deviceIdsToVerify: number[],
+): Promise<ActionResult> {
+  const { user } = await getCurrentSession();
+  if (!user) {
+    return { success: false, message: "Not authenticated" };
+  }
+
+  if (!Array.isArray(deviceIdsToVerify) || deviceIdsToVerify.length === 0) {
+    return { success: false, message: "No device IDs provided" };
+  }
+
+  try {
+    const valuesToInsert = deviceIdsToVerify.map((deviceId) => ({
+      verifierUserId: user.id,
+      verifiedDeviceId: deviceId,
+    }));
+
+    // 'onConflictDoNothing' handles cases where a device is already verified.
+    await db
+      .insert(deviceVerifications)
+      .values(valuesToInsert)
+      .onConflictDoNothing();
+
+    return { success: true, message: "Devices verified successfully." };
+  } catch (error) {
+    console.error("Failed to verify devices:", error);
+    return { success: false, message: "An unexpected error occurred." };
+  }
 }

@@ -4,6 +4,7 @@ import {
   integer,
   pgEnum,
   pgTableCreator,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -141,3 +142,20 @@ export const messages = createTable("messages", {
 
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
+
+export const deviceVerifications = createTable(
+  "device_verifications",
+  {
+    verifierUserId: integer("verifier_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    verifiedDeviceId: integer("verified_device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.verifierUserId, table.verifiedDeviceId],
+    }),
+  ],
+);

@@ -1,13 +1,5 @@
 "use client";
 
-import { sendMessageAction } from "@/actions";
-import { Button } from "@/components/ui/button";
-import type { User } from "@/lib/db/schema";
-import {
-  deriveSharedSecret,
-  encryptMessage,
-  importPublicKey,
-} from "@/lib/crypto";
 import {
   type ChangeEvent,
   type JSX,
@@ -19,7 +11,15 @@ import {
 } from "react";
 import ReactTextareaAutosize from "react-textarea-autosize";
 import { toast } from "sonner";
+import { getVerifiedDeviceIdsForContact, sendMessageAction } from "@/actions";
+import { Button } from "@/components/ui/button";
 import { cryptoStore } from "@/lib/crypto-store";
+import {
+  deriveSharedSecret,
+  encryptMessage,
+  importPublicKey,
+} from "@/lib/crypto";
+import type { User } from "@/lib/db/schema";
 import type { UserWithDevices } from "@/lib/getFriends";
 
 export const ChatInput = ({
@@ -52,17 +52,22 @@ export const ChatInput = ({
         );
       }
 
-      const recipientDevices = receiver.devices;
+      const verifiedDeviceIds = await getVerifiedDeviceIdsForContact(
+        receiver.id,
+      );
+      const recipientDevicesToEncryptFor = receiver.devices.filter((device) =>
+        verifiedDeviceIds.includes(device.id),
+      );
 
-      if (recipientDevices.length === 0) {
+      if (recipientDevicesToEncryptFor.length === 0) {
         throw new Error(
-          "The recipient has no registered devices for secure messaging.",
+          `You haven't verified any of ${receiver.username}'s devices. Please verify their identity to send messages.`,
         );
       }
 
       const encryptedContent: Record<number, string> = {};
 
-      for (const device of recipientDevices) {
+      for (const device of recipientDevicesToEncryptFor) {
         const recipientPublicKey = await importPublicKey(device.publicKey);
         const sharedKey = await deriveSharedSecret(
           ownPrivateKey,
