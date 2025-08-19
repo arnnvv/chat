@@ -31,18 +31,20 @@ const ChatMessage = memo(function ChatMessage({
   hasNxtMessage,
   chatPartner,
   sessionImg,
+  measureElement,
 }: {
   message: DecryptedMessage;
   isCurrentUser: boolean;
   hasNxtMessage: boolean;
   chatPartner: UserWithDevices;
   sessionImg: string | null | undefined;
+  measureElement: (element: HTMLElement | null) => void;
 }) {
   return (
-    <div className="chat-message">
+    <div ref={measureElement} className="chat-message">
       <div
         className={cn(
-          "flex items-start space-x-2",
+          "flex items-end space-x-2",
           isCurrentUser && "justify-end space-x-reverse",
         )}
       >
@@ -123,7 +125,6 @@ export const MessagesComp = ({
       ? initialMessages[0].createdAt.toISOString()
       : null,
   );
-  const userScrolledUpRef = useRef(false);
 
   const cryptoKeysRef = useRef<{
     ownPrivateKey: CryptoKey | null;
@@ -142,7 +143,6 @@ export const MessagesComp = ({
       const { ownPrivateKey, ownDeviceId, partnerPublicKeys } =
         cryptoKeysRef.current;
       if (!ownPrivateKey || !ownDeviceId) return "[Key Error]";
-
       try {
         const payload = JSON.parse(message.content);
         const { senderDeviceId, recipients } = payload;
@@ -179,15 +179,16 @@ export const MessagesComp = ({
     [sessionId],
   );
 
-  const loadMoreMessages = useCallback(async () => {
+  const fetchPrevious = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
     setIsLoadingMore(true);
-
     try {
       const { messages: newMessages, nextCursor } = await getPaginatedMessages(
         chatId,
         cursorRef.current,
       );
+      cursorRef.current = nextCursor;
+      setHasMore(nextCursor !== null);
 
       const decryptedNewMessages = await Promise.all(
         newMessages.map(async (msg) => ({
@@ -197,11 +198,9 @@ export const MessagesComp = ({
       );
 
       setDecryptedMessages((prev) => [
-        ...prev,
         ...decryptedNewMessages.reverse(),
+        ...prev,
       ]);
-      cursorRef.current = nextCursor;
-      setHasMore(nextCursor !== null);
     } catch (_error) {
       toast.error("Failed to load older messages.");
     } finally {
@@ -213,17 +212,13 @@ export const MessagesComp = ({
     const setupAndDecrypt = async () => {
       try {
         if (cryptoKeysRef.current.isSetup) return;
-
         const privateKey = await cryptoStore.getKey("privateKey");
         const deviceId = await cryptoStore.getDeviceId();
         if (!privateKey || !deviceId)
           throw new Error("Local device keys not found.");
-
         cryptoKeysRef.current.ownPrivateKey = privateKey;
         cryptoKeysRef.current.ownDeviceId = deviceId;
-
         const partnerDeviceList = chatPartner.devices;
-
         await Promise.all(
           partnerDeviceList.map(async (device) => {
             const importedKey = await importPublicKey(device.publicKey);
@@ -231,14 +226,12 @@ export const MessagesComp = ({
           }),
         );
         cryptoKeysRef.current.isSetup = true;
-
         const newlyDecrypted = await Promise.all(
           initialMessages.map(async (msg) => ({
             ...msg,
             decryptedContent: await decryptMessageContent(msg),
           })),
         );
-
         setDecryptedMessages(newlyDecrypted);
       } catch (error) {
         toast.error(
@@ -248,80 +241,67 @@ export const MessagesComp = ({
         );
       }
     };
-
     setupAndDecrypt();
   }, [chatPartner.devices, initialMessages, decryptMessageContent]);
 
   const virtualizer = useVirtualizer({
-    count: hasMore ? decryptedMessages.length + 1 : decryptedMessages.length,
+    count: decryptedMessages.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 75,
     overscan: 10,
-    getItemKey: (index) => {
-      if (hasMore && index === decryptedMessages.length) return "loader";
-      return decryptedMessages[index].id;
+    getItemKey: (index) => decryptedMessages[index]?.id,
+    onChange: (instance) => {
+      if (
+        instance.getVirtualItems().length > 0 &&
+        instance.getVirtualItems()[0]?.index === 0 &&
+        hasMore &&
+        !isLoadingMore
+      ) {
+        fetchPrevious();
+      }
     },
   });
 
   useEffect(() => {
-    const lastItem = virtualizer.getVirtualItems().at(-1);
-    if (!lastItem) return;
-
-    if (
-      lastItem.index >= decryptedMessages.length - 1 &&
-      hasMore &&
-      !isLoadingMore
-    ) {
-      loadMoreMessages();
+    if (virtualizer.getVirtualItems().length > 0) {
+      virtualizer.scrollToIndex(decryptedMessages.length - 1, {
+        align: "end",
+      });
     }
-  }, [
-    virtualizer.getVirtualItems(),
-    decryptedMessages.length,
-    hasMore,
-    isLoadingMore,
-    loadMoreMessages,
-  ]);
+  }, [virtualizer, decryptedMessages.length]);
 
   useEffect(() => {
     const pusherMessageHandler = async (message: Message) => {
       if (!cryptoKeysRef.current.isSetup) return;
       const decryptedContent = await decryptMessageContent(message);
+      const parentEl = parentRef.current;
+      const isAtBottom =
+        parentEl &&
+        parentEl.scrollHeight - parentEl.scrollTop - parentEl.clientHeight < 1;
+
       setDecryptedMessages((prev) => [
-        { ...message, decryptedContent },
         ...prev,
+        { ...message, decryptedContent },
       ]);
+
+      if (isAtBottom) {
+        virtualizer.scrollToIndex(decryptedMessages.length, { align: "end" });
+      }
     };
 
     pusherClient.subscribe(toPusherKey(`chat:${chatId}`));
     pusherClient.bind("incoming-message", pusherMessageHandler);
-
     return () => {
       pusherClient.unsubscribe(toPusherKey(`chat:${chatId}`));
       pusherClient.unbind("incoming-message", pusherMessageHandler);
     };
-  }, [chatId, decryptMessageContent]);
-
-  useEffect(() => {
-    if (!userScrolledUpRef.current) {
-      virtualizer.scrollToIndex(0, { align: "start" });
-    }
-  }, [decryptedMessages.length, virtualizer]);
-
-  const handleScroll = () => {
-    if (!parentRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = parentRef.current;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 1;
-    userScrolledUpRef.current = !isAtBottom;
-  };
-
-  const virtualItems = virtualizer.getVirtualItems();
+  }, [chatId, decryptMessageContent, decryptedMessages.length, virtualizer]);
 
   return (
     <div
       ref={parentRef}
       id="messages"
-      onScroll={handleScroll}
-      className="flex h-full flex-1 flex-col-reverse gap-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch"
+      className="flex h-full flex-1 flex-col gap-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch"
     >
       <div
         style={{
@@ -330,33 +310,16 @@ export const MessagesComp = ({
           position: "relative",
         }}
       >
-        {virtualItems.map((virtualRow) => {
-          const isLoaderRow = virtualRow.index === decryptedMessages.length;
-
-          if (isLoaderRow && hasMore) {
-            return (
-              <div
-                key="loader"
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualRow.start}px)`,
-                  display: "flex",
-                  justifyContent: "center",
-                  padding: "1rem",
-                }}
-              >
-                <Loader2 className="w-6 h-6 animate-spin" />
-              </div>
-            );
-          }
-
+        {isLoadingMore && hasMore && (
+          <div className="flex justify-center my-4">
+            <Loader2 className="w-6 h-6 animate-spin" />
+          </div>
+        )}
+        {virtualizer.getVirtualItems().map((virtualRow) => {
           const message = decryptedMessages[virtualRow.index];
           const isCurrentUser = message.senderId === sessionId;
           const hasNxtMessage =
-            decryptedMessages[virtualRow.index + 1]?.senderId ===
+            decryptedMessages[virtualRow.index - 1]?.senderId ===
             message.senderId;
 
           return (
@@ -372,6 +335,7 @@ export const MessagesComp = ({
               }}
             >
               <ChatMessage
+                measureElement={virtualizer.measureElement}
                 message={message}
                 isCurrentUser={isCurrentUser}
                 hasNxtMessage={hasNxtMessage}
