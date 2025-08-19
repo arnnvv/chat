@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  type JSX,
-  useRef,
-  useState,
-  useCallback,
-  useEffect,
-  memo,
-} from "react";
+import { type JSX, useRef, useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
@@ -25,7 +18,7 @@ import { cryptoStore } from "@/lib/crypto-store";
 import type { UserWithDevices } from "@/lib/getFriends";
 import { getPaginatedMessages } from "@/actions";
 
-const ChatMessage = memo(function ChatMessage({
+function ChatMessage({
   message,
   isCurrentUser,
   hasNxtMessage,
@@ -93,7 +86,7 @@ const ChatMessage = memo(function ChatMessage({
       </div>
     </div>
   );
-});
+}
 
 interface DecryptedMessage extends Message {
   decryptedContent: string | null;

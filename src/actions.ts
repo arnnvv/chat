@@ -93,17 +93,15 @@ export const logInAction = async (
       where: (users, { eq }) => eq(users.email, email),
     })) as User | undefined;
 
-    if (!existingUser)
+    if (
+      !existingUser ||
+      !(await verifyPasswordHash(existingUser.password_hash, password))
+    ) {
       return {
         success: false,
-        message: "User not found",
+        message: "Invalid email or password",
       };
-
-    if (!(await verifyPasswordHash(existingUser.password_hash, password)))
-      return {
-        success: false,
-        message: "Wrong Password",
-      };
+    }
 
     const sessionToken = generateSessionToken();
     const session = await createSession(sessionToken, existingUser.id);
