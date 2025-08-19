@@ -1,0 +1,2 @@
+CREATE INDEX "friend_requests_recipient_status_idx" ON "chat_friend_requests" USING btree ("recipient_id","status");--> statement-breakpoint
+CREATE INDEX "messages_sender_recipient_created_idx" ON "chat_messages" USING btree ("sender_id","recipient_id","created_at" DESC);

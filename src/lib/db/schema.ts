@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   integer,
@@ -10,6 +10,7 @@ import {
   timestamp,
   uniqueIndex,
   varchar,
+  index,
 } from "drizzle-orm/pg-core";
 
 export const createTable = pgTableCreator(
@@ -99,46 +100,65 @@ export const emailVerificationRequests = createTable(
 export type EmailVerificationRequest =
   typeof emailVerificationRequests.$inferSelect;
 
-export const friendRequests = createTable("friend_requests", {
-  id: serial("id").primaryKey(),
-  requesterId: integer("requester_id")
-    .notNull()
-    .references(() => users.id),
-  recipientId: integer("recipient_id")
-    .notNull()
-    .references(() => users.id),
-  status: friendReqStatusEnum("status").notNull(),
-  createdAt: timestamp("created_at", {
-    withTimezone: true,
-    mode: "date",
-  })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", {
-    withTimezone: true,
-    mode: "date",
-  })
-    .defaultNow()
-    .notNull(),
-});
+export const friendRequests = createTable(
+  "friend_requests",
+  {
+    id: serial("id").primaryKey(),
+    requesterId: integer("requester_id")
+      .notNull()
+      .references(() => users.id),
+    recipientId: integer("recipient_id")
+      .notNull()
+      .references(() => users.id),
+    status: friendReqStatusEnum("status").notNull(),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("friend_requests_recipient_status_idx").on(
+      table.recipientId,
+      table.status,
+    ),
+  ],
+);
 
 export type FriendRequest = typeof friendRequests.$inferSelect;
 export type NewFriendRequest = typeof friendRequests.$inferInsert;
 
-export const messages = createTable("messages", {
-  id: serial("id").primaryKey(),
-  senderId: integer("sender_id")
-    .notNull()
-    .references(() => users.id),
-  recipientId: integer("recipient_id")
-    .notNull()
-    .references(() => users.id),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at", {
-    withTimezone: true,
-    mode: "date",
-  }).notNull(),
-});
+export const messages = createTable(
+  "messages",
+  {
+    id: serial("id").primaryKey(),
+    senderId: integer("sender_id")
+      .notNull()
+      .references(() => users.id),
+    recipientId: integer("recipient_id")
+      .notNull()
+      .references(() => users.id),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    }).notNull(),
+  },
+  (table) => [
+    index("messages_sender_recipient_created_idx").on(
+      table.senderId,
+      table.recipientId,
+      sql`${table.createdAt} DESC`,
+    ),
+  ],
+);
 
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
