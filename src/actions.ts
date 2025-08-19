@@ -891,22 +891,31 @@ export const sendMessageAction = async ({
       .values(messageData)
       .returning();
 
-    const pusherPayload = {
+    const chatPusherPayload = {
       ...insertedMessage,
       senderName: sender.username,
       senderImage: sender.picture,
+    };
+
+    const notificationPusherPayload = {
+      senderId: sender.id,
+      senderName: sender.username,
+      senderImage: sender.picture,
+      chatId: chatHrefConstructor(sender.id, receiver.id),
+      senderDeviceId,
+      encryptedPreviews: encryptedContent,
     };
 
     await Promise.all([
       pusherServer.trigger(
         toPusherKey(`chat:${chatHrefConstructor(sender.id, receiver.id)}`),
         "incoming-message",
-        pusherPayload,
+        chatPusherPayload,
       ),
       pusherServer.trigger(
         toPusherKey(`user:${receiver.id}:chats`),
-        "new_message",
-        pusherPayload,
+        "new_message_notification",
+        notificationPusherPayload,
       ),
     ]);
 
