@@ -1,115 +1,104 @@
 import { eq } from "drizzle-orm";
 import { db } from "./db";
-import { type User, users } from "./db/schema";
-import { generateRandomPassword, hashPassword } from "./password";
+import { users, type User } from "./db/schema";
+import { PROVIDER } from "./constants";
 
-export async function createUserGoogle(
+type Provider = (typeof PROVIDER)[keyof typeof PROVIDER];
+
+type Profile = {
+  providerId: string;
+  email: string;
+  username: string;
+  picture: string;
+};
+
+async function upsertUser(provider: Provider, profile: Profile): Promise<User> {
+  const providerIdColumn =
+    provider === "google" ? users.googleId : users.githubId;
+
+  const existingUserByProviderId = await db
+    .select()
+    .from(users)
+    .where(eq(providerIdColumn, profile.providerId))
+    .limit(1);
+
+  if (existingUserByProviderId.length > 0) {
+    const user = existingUserByProviderId[0];
+    if (user.picture !== profile.picture) {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ picture: profile.picture })
+        .where(eq(users.id, user.id))
+        .returning();
+      return updatedUser;
+    }
+    return user;
+  }
+
+  const existingUserByEmail = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, profile.email))
+    .limit(1);
+
+  if (existingUserByEmail.length > 0) {
+    const user = existingUserByEmail[0];
+    const [linkedUser] = await db
+      .update(users)
+      .set({ [providerIdColumn.name]: profile.providerId })
+      .where(eq(users.id, user.id))
+      .returning();
+    return linkedUser;
+  }
+
+  const [newUser] = await db
+    .insert(users)
+    .values({
+      email: profile.email,
+      username: `${provider}-${profile.username}`,
+      picture: profile.picture,
+      [providerIdColumn.name]: profile.providerId,
+      verified: true,
+    })
+    .returning();
+
+  return newUser;
+}
+
+export async function upsertUserFromGoogleProfile(
+  googleId: string,
   email: string,
+  name: string,
   picture: string,
 ): Promise<User> {
   try {
-    const hashedPassword = await hashPassword(generateRandomPassword(10));
-    const [newUser] = await db
-      .insert(users)
-      .values({
-        username: `google-${email}`,
-        email,
-        password_hash: hashedPassword,
-        picture: picture,
-        verified: true,
-      })
-      .returning();
-
-    return newUser;
+    return await upsertUser(PROVIDER.GOOGLE, {
+      providerId: googleId,
+      email,
+      username: name.split(" ")[0],
+      picture,
+    });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("unique constraint")) {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, email))
-        .limit(1);
-
-      if (user.picture === null) {
-        const [newUser] = await db
-          .update(users)
-          .set({ picture })
-          .where(eq(users.email, user.email))
-          .returning();
-        return newUser;
-      }
-      return user;
-    }
-    throw error;
+    console.error(`Error in upsertUserFromGoogleProfile: ${error}`);
+    throw new Error("Could not create or update user profile from Google.");
   }
 }
 
-export async function getUserFromGmail(email: string): Promise<User | null> {
-  try {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
-
-    return user || null;
-  } catch (error) {
-    console.error(`Error fetching user by email: ${error}`);
-    throw error;
-  }
-}
-
-export async function createUserGithub(
-  githubId: number,
+export async function upsertUserFromGitHubProfile(
+  githubId: string,
   email: string,
-  username: string,
+  name: string,
+  picture: string,
 ): Promise<User> {
   try {
-    const hashedPassword = await hashPassword(generateRandomPassword(10));
-
-    const [newUser] = await db
-      .insert(users)
-      .values({
-        username: `github-${username}`,
-        email,
-        password_hash: hashedPassword,
-        picture: `https://avatars.githubusercontent.com/u/${githubId}`,
-        verified: true,
-      })
-      .returning();
-    return newUser;
+    return await upsertUser(PROVIDER.GITHUB, {
+      providerId: githubId,
+      email,
+      username: name,
+      picture,
+    });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("unique constraint")) {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, email))
-        .limit(1);
-      if (user.picture === null) {
-        const [newUser] = await db
-          .update(users)
-          .set({
-            picture: `https://avatars.githubusercontent.com/u/${githubId}`,
-          })
-          .where(eq(users.email, user.email))
-          .returning();
-        return newUser;
-      }
-      return user;
-    }
-    throw error;
+    console.error(`Error in upsertUserFromGitHubProfile: ${error}`);
+    throw new Error("Could not create or update user profile from GitHub.");
   }
-}
-
-export async function getUserFromGitHubId(
-  githubId: number,
-): Promise<User | null> {
-  const foundUsers = await db
-    .select()
-    .from(users)
-    .where(
-      eq(users.picture, `https://avatars.githubusercontent.com/u/${githubId}`),
-    )
-    .limit(1);
-
-  return foundUsers.length > 0 ? foundUsers[0] : null;
 }

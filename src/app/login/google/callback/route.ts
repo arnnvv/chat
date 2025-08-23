@@ -1,89 +1,85 @@
 import { cookies } from "next/headers";
-import { decodeIdToken, google } from "@/lib/oauth";
-import { createUserGoogle, getUserFromGmail } from "@/lib/user";
+import {
+  GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME,
+  GOOGLE_OAUTH_NONCE_COOKIE_NAME,
+  GOOGLE_OAUTH_STATE_COOKIE_NAME,
+} from "@/lib/constants";
+import { google } from "@/lib/oauth";
+import { ObjectParser } from "@/lib/parser";
+import { globalGETRateLimit } from "@/lib/request";
+import { upsertUserFromGoogleProfile } from "@/lib/user";
+import { getCurrentSession } from "@/actions";
 import { createSession, generateSessionToken } from "@/lib/auth";
 import { setSessionTokenCookie } from "@/lib/session";
-import { getCurrentSession } from "@/actions";
-import { globalGETRateLimit } from "@/lib/request";
-import { ObjectParser } from "@/lib/oauth-parser";
-import type { OAuth2Tokens } from "@/lib/oauth-token";
 
 export async function GET(request: Request): Promise<Response> {
-  if (!globalGETRateLimit()) {
-    return new Response("Too many requests", {
-      status: 429,
-    });
+  if (!(await globalGETRateLimit())) {
+    return new Response("Too many requests", { status: 429 });
   }
 
   const { session } = await getCurrentSession();
-  if (session !== null)
-    return new Response("Logged In", {
-      status: 302,
-      headers: {
-        Location: "/",
-      },
-    });
+  if (session !== null) {
+    return Response.redirect(new URL("/", request.url));
+  }
 
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
-  const storedState =
-    (await cookies()).get("google_oauth_state")?.value ?? null;
+
+  const c = await cookies();
+  const storedState = c.get(GOOGLE_OAUTH_STATE_COOKIE_NAME)?.value ?? null;
   const codeVerifier =
-    (await cookies()).get("google_code_verifier")?.value ?? null;
+    c.get(GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME)?.value ?? null;
+  const nonce = c.get(GOOGLE_OAUTH_NONCE_COOKIE_NAME)?.value ?? null;
+
+  c.delete(GOOGLE_OAUTH_STATE_COOKIE_NAME);
+  c.delete(GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME);
+  c.delete(GOOGLE_OAUTH_NONCE_COOKIE_NAME);
+
   if (
-    code === null ||
-    state === null ||
-    storedState === null ||
-    codeVerifier === null
+    !code ||
+    !state ||
+    !storedState ||
+    !codeVerifier ||
+    !nonce ||
+    state !== storedState
   ) {
-    return new Response("Please restart the process.", {
-      status: 400,
-    });
-  }
-  if (state !== storedState) {
-    return new Response("Please restart the process.", {
+    return new Response("Invalid OAuth state. Please try again.", {
       status: 400,
     });
   }
 
-  let tokens: OAuth2Tokens;
   try {
-    tokens = await google.validateAuthorizationCode(code, codeVerifier);
-  } catch {
-    return new Response("Please restart the process.", {
-      status: 400,
-    });
-  }
+    const tokens = await google.validateAuthorizationCode(code, codeVerifier);
+    const claims = await google.validateIdToken(tokens.idToken(), nonce);
 
-  const claims = decodeIdToken(tokens.idToken());
-  const claimsParser = new ObjectParser(claims);
+    const claimsParser = new ObjectParser(claims);
+    const googleId = claimsParser.getString("sub");
+    const name = claimsParser.getString("name");
+    const picture = claimsParser.getString("picture");
+    const email = claimsParser.getString("email");
 
-  //const name = claimsParser.getString("name");
-  const picture = claimsParser.getString("picture");
-  const email = claimsParser.getString("email");
+    const user = await upsertUserFromGoogleProfile(
+      googleId,
+      email,
+      name,
+      picture,
+    );
 
-  const existingUser = await getUserFromGmail(email);
-  if (existingUser !== null) {
     const sessionToken = generateSessionToken();
-    const session2 = await createSession(sessionToken, existingUser.id);
-    setSessionTokenCookie(sessionToken, session2.expiresAt);
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: "/",
-      },
+    const newSession = await createSession(sessionToken, user.id);
+    await setSessionTokenCookie(sessionToken, newSession.expiresAt);
+
+    const redirectTo =
+      user.username.startsWith("google-") || user.username.startsWith("github-")
+        ? "/get-username"
+        : "/";
+
+    return Response.redirect(new URL(redirectTo, request.url));
+  } catch (e) {
+    console.error(`OAuth callback error: ${e}`);
+    return new Response("Authentication failed. Please try again.", {
+      status: 500,
     });
   }
-
-  const user = await createUserGoogle(email, picture);
-  const sessionToken = generateSessionToken();
-  const session2 = await createSession(sessionToken, user.id);
-  setSessionTokenCookie(sessionToken, session2.expiresAt);
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: "/get-username",
-    },
-  });
 }

@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   varchar,
   index,
+  check,
 } from "drizzle-orm/pg-core";
 
 export const createTable = pgTableCreator(
@@ -23,14 +24,25 @@ export const friendReqStatusEnum = pgEnum("friend_req_status", [
   "declined",
 ]);
 
-export const users = createTable("users", {
-  id: serial("id").primaryKey(),
-  username: varchar("username").unique().notNull(),
-  email: varchar("email", { length: 255 }).unique().notNull(),
-  password_hash: varchar("password_hash").notNull(),
-  verified: boolean("verified").notNull().default(false),
-  picture: text("picture"),
-});
+export const users = createTable(
+  "users",
+  {
+    id: serial("id").primaryKey(),
+    username: varchar("username").unique().notNull(),
+    email: varchar("email", { length: 255 }).unique().notNull(),
+    password_hash: varchar("password_hash"),
+    googleId: text("google_id").unique(),
+    githubId: text("github_id").unique(),
+    verified: boolean("verified").notNull().default(false),
+    picture: text("picture"),
+  },
+  (table) => [
+    check(
+      "auth_method_check",
+      sql`${table.password_hash} IS NOT NULL OR ${table.googleId} IS NOT NULL OR ${table.githubId} IS NOT NULL`,
+    ),
+  ],
+);
 
 export const usersRelations = relations(users, ({ many }) => ({
   devices: many(devices),
@@ -72,7 +84,7 @@ export const sessions = createTable("sessions", {
   id: text("id").primaryKey(),
   userId: integer("user_id")
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: "cascade" }),
   expiresAt: timestamp("expires_at", {
     withTimezone: true,
     mode: "date",
@@ -87,7 +99,7 @@ export const emailVerificationRequests = createTable(
     id: serial("id").primaryKey(),
     userId: integer("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
     code: text("code").notNull(),
     expiresAt: timestamp("expires_at", {
@@ -106,10 +118,10 @@ export const friendRequests = createTable(
     id: serial("id").primaryKey(),
     requesterId: integer("requester_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     recipientId: integer("recipient_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     status: friendReqStatusEnum("status").notNull(),
     createdAt: timestamp("created_at", {
       withTimezone: true,
@@ -141,10 +153,10 @@ export const messages = createTable(
     id: serial("id").primaryKey(),
     senderId: integer("sender_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     recipientId: integer("recipient_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
     createdAt: timestamp("created_at", {
       withTimezone: true,

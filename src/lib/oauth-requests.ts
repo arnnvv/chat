@@ -40,7 +40,7 @@ export function createOAuth2Request(
   });
   request.headers.set("Content-Type", "application/x-www-form-urlencoded");
   request.headers.set("Accept", "application/json");
-  request.headers.set("User-Agent", "arnnvv");
+  request.headers.set("User-Agent", "secure");
   request.headers.set("Content-Length", bodyBytes.byteLength.toString());
   return request;
 }
