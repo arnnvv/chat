@@ -282,10 +282,10 @@ export const MessagesComp = ({
       }
     };
 
-    pusherClient.subscribe(toPusherKey(`chat:${chatId}`));
+    pusherClient.subscribe(toPusherKey(`private-chat:${chatId}`));
     pusherClient.bind("incoming-message", pusherMessageHandler);
     return () => {
-      pusherClient.unsubscribe(toPusherKey(`chat:${chatId}`));
+      pusherClient.unsubscribe(toPusherKey(`private-chat:${chatId}`));
       pusherClient.unbind("incoming-message", pusherMessageHandler);
     };
   }, [chatId, decryptMessageContent, decryptedMessages.length, virtualizer]);

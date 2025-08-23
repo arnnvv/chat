@@ -37,4 +37,6 @@ export const pusherServer = new PusherServer({
 
 export const pusherClient = new PusherClient(getPusher().pusherAppKey, {
   cluster: getPusher().pusherAppCluster,
+  authEndpoint: "/api/pusher/auth",
+  authTransport: "ajax",
 });

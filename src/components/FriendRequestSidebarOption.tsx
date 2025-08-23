@@ -27,10 +27,10 @@ export const FriendRequestSidebarOption = ({
     };
 
     pusherClient.subscribe(
-      toPusherKey(`user:${sessionId}:incoming_friend_request`),
+      toPusherKey(`private-user:${sessionId}:incoming_friend_request`),
     );
 
-    pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`));
+    pusherClient.subscribe(toPusherKey(`private-user:${sessionId}:friends`));
 
     pusherClient.bind(`incoming_friend_request`, friendReqHandler);
 
@@ -38,10 +38,12 @@ export const FriendRequestSidebarOption = ({
 
     return () => {
       pusherClient.unsubscribe(
-        toPusherKey(`user:${sessionId}:incoming_friend_request`),
+        toPusherKey(`private-user:${sessionId}:incoming_friend_request`),
       );
 
-      pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:friends`));
+      pusherClient.unsubscribe(
+        toPusherKey(`private-user:${sessionId}:friends`),
+      );
 
       pusherClient.unbind(`incoming_friend_request`, friendReqHandler);
 

@@ -132,15 +132,20 @@ export const SidebarChatList = ({
         setActiveChats((prev) => [...prev, newFriend]);
       };
 
-      pusherClient.subscribe(toPusherKey(`user:${sessionId}:chats`));
-      pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`));
+      pusherClient.subscribe(toPusherKey(`private-user:${sessionId}:chats`));
+      pusherClient.subscribe(toPusherKey(`private-user:${sessionId}:friends`));
 
       pusherClient.bind("new_message_notification", newMessageHandler);
       pusherClient.bind("new_friend", newFriendHandler);
 
       return () => {
-        pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:chats`));
-        pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:friends`));
+        pusherClient.unsubscribe(
+          toPusherKey(`private-user:${sessionId}:chats`),
+        );
+        pusherClient.unsubscribe(
+          toPusherKey(`private-user:${sessionId}:friends`),
+        );
+
         pusherClient.unbind("new_message_notification", newMessageHandler);
         pusherClient.unbind("new_friend", newFriendHandler);
       };

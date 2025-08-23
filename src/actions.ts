@@ -742,7 +742,7 @@ export const addFriendAction = async (
         };
 
     pusherServer.trigger(
-      toPusherKey(`user:${friend.id}:incoming_friend_request`),
+      toPusherKey(`private-user:${friend.id}:incoming_friend_request`),
       `incoming_friend_request`,
       {
         senderId: user.id,
@@ -791,12 +791,12 @@ export const acceptFriendRequest = async (
 
     await Promise.all([
       pusherServer.trigger(
-        toPusherKey(`user:${friendRequestId}:friends`),
+        toPusherKey(`private-user:${friendRequestId}:friends`),
         "new_friend",
         user,
       ),
       pusherServer.trigger(
-        toPusherKey(`user:${sessionId}:friends`),
+        toPusherKey(`private-user:${sessionId}:friends`),
         "new_friend",
         friendRequester,
       ),
@@ -908,12 +908,14 @@ export const sendMessageAction = async ({
 
     await Promise.all([
       pusherServer.trigger(
-        toPusherKey(`chat:${chatHrefConstructor(sender.id, receiver.id)}`),
+        toPusherKey(
+          `private-chat:${chatHrefConstructor(sender.id, receiver.id)}`,
+        ),
         "incoming-message",
         chatPusherPayload,
       ),
       pusherServer.trigger(
-        toPusherKey(`user:${receiver.id}:chats`),
+        toPusherKey(`private-user:${receiver.id}:chats`),
         "new_message_notification",
         notificationPusherPayload,
       ),
