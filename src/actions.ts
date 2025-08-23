@@ -93,10 +93,27 @@ export const logInAction = async (
       where: (users, { eq }) => eq(users.email, email),
     })) as User | undefined;
 
-    if (
-      !existingUser ||
-      !(await verifyPasswordHash(existingUser.password_hash, password))
-    ) {
+    if (!existingUser) {
+      return {
+        success: false,
+        message: "Invalid email or password",
+      };
+    }
+
+    if (!existingUser.password_hash) {
+      return {
+        success: false,
+        message:
+          "This account was created using a social login. Please sign in with Google or GitHub.",
+      };
+    }
+
+    const passwordMatch = await verifyPasswordHash(
+      existingUser.password_hash,
+      password,
+    );
+
+    if (!passwordMatch) {
       return {
         success: false,
         message: "Invalid email or password",
@@ -112,9 +129,10 @@ export const logInAction = async (
       message: "Login successful",
     };
   } catch (e) {
+    console.error(`Login failed: ${e}`);
     return {
       success: false,
-      message: `Login failed: ${JSON.stringify(e)}`,
+      message: "An unexpected error occurred during login.",
     };
   }
 };

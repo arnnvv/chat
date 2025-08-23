@@ -80,6 +80,8 @@ export const getFriendsWithLastMessage = async (
       u.password_hash,
       u.verified,
       u.picture,
+      u.google_id as "googleId",
+      u.github_id as "githubId",
       lm.id as "lastMessageId",
       lm.sender_id as "lastMessageSenderId",
       lm.recipient_id as "lastMessageRecipientId",
@@ -110,6 +112,8 @@ export const getFriendsWithLastMessage = async (
       password_hash: row.password_hash,
       verified: row.verified,
       picture: row.picture,
+      googleId: row.googleId,
+      githubId: row.githubId,
       devices: row.devices || [],
       lastMessage: row.lastMessageId
         ? {

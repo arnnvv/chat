@@ -16,40 +16,46 @@ async function upsertUser(provider: Provider, profile: Profile): Promise<User> {
   const providerIdColumn =
     provider === "google" ? users.googleId : users.githubId;
 
-  const existingUserByProviderId = await db
+  const [userByProviderId] = await db
     .select()
     .from(users)
     .where(eq(providerIdColumn, profile.providerId))
     .limit(1);
 
-  if (existingUserByProviderId.length > 0) {
-    const user = existingUserByProviderId[0];
-    if (user.picture !== profile.picture) {
+  if (userByProviderId) {
+    if (userByProviderId.picture !== profile.picture) {
       const [updatedUser] = await db
         .update(users)
         .set({ picture: profile.picture })
-        .where(eq(users.id, user.id))
+        .where(eq(users.id, userByProviderId.id))
         .returning();
       return updatedUser;
     }
-    return user;
+    return userByProviderId;
   }
 
-  const existingUserByEmail = await db
+  const [userByEmail] = await db
     .select()
     .from(users)
     .where(eq(users.email, profile.email))
     .limit(1);
 
-  if (existingUserByEmail.length > 0) {
-    const user = existingUserByEmail[0];
+  if (userByEmail) {
     const [linkedUser] = await db
       .update(users)
-      .set({ [providerIdColumn.name]: profile.providerId })
-      .where(eq(users.id, user.id))
+      .set({
+        [providerIdColumn.name]: profile.providerId,
+        picture: profile.picture,
+      })
+      .where(eq(users.id, userByEmail.id))
       .returning();
     return linkedUser;
   }
+
+  const providerKey = providerIdColumn.name as keyof Pick<
+    User,
+    "googleId" | "githubId"
+  >;
 
   const [newUser] = await db
     .insert(users)
@@ -57,7 +63,7 @@ async function upsertUser(provider: Provider, profile: Profile): Promise<User> {
       email: profile.email,
       username: `${provider}-${profile.username}`,
       picture: profile.picture,
-      [providerIdColumn.name]: profile.providerId,
+      [providerKey]: profile.providerId,
       verified: true,
     })
     .returning();
@@ -72,10 +78,11 @@ export async function upsertUserFromGoogleProfile(
   picture: string,
 ): Promise<User> {
   try {
+    const username = name.split(" ")[0] || "user";
     return await upsertUser(PROVIDER.GOOGLE, {
       providerId: googleId,
       email,
-      username: name.split(" ")[0],
+      username,
       picture,
     });
   } catch (error) {
