@@ -41,32 +41,37 @@ async function upsertUser(provider: Provider, profile: Profile): Promise<User> {
     .limit(1);
 
   if (userByEmail) {
+    const updateData: Partial<typeof users.$inferInsert> = {
+      picture: profile.picture,
+    };
+    if (provider === "google") {
+      updateData.googleId = profile.providerId;
+    } else {
+      updateData.githubId = profile.providerId;
+    }
+
     const [linkedUser] = await db
       .update(users)
-      .set({
-        [providerIdColumn.name]: profile.providerId,
-        picture: profile.picture,
-      })
+      .set(updateData)
       .where(eq(users.id, userByEmail.id))
       .returning();
     return linkedUser;
   }
 
-  const providerKey = providerIdColumn.name as keyof Pick<
-    User,
-    "googleId" | "githubId"
-  >;
+  const newUserValues: typeof users.$inferInsert = {
+    email: profile.email,
+    username: `${provider}-${profile.username}`,
+    picture: profile.picture,
+    verified: true,
+  };
 
-  const [newUser] = await db
-    .insert(users)
-    .values({
-      email: profile.email,
-      username: `${provider}-${profile.username}`,
-      picture: profile.picture,
-      [providerKey]: profile.providerId,
-      verified: true,
-    })
-    .returning();
+  if (provider === "google") {
+    newUserValues.googleId = profile.providerId;
+  } else {
+    newUserValues.githubId = profile.providerId;
+  }
+
+  const [newUser] = await db.insert(users).values(newUserValues).returning();
 
   return newUser;
 }
