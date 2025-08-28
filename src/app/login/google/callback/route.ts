@@ -11,7 +11,7 @@ import { upsertUserFromGoogleProfile } from "@/lib/user";
 import { getCurrentSession } from "@/actions";
 import { createSession, generateSessionToken } from "@/lib/auth";
 import { setSessionTokenCookie } from "@/lib/session";
-import { cookieOption } from "@/lib/cookie";
+import { appConfig } from "@/lib/config";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {
@@ -35,15 +35,15 @@ export async function GET(request: Request): Promise<Response> {
 
   c.delete({
     name: GOOGLE_OAUTH_STATE_COOKIE_NAME,
-    ...cookieOption,
+    ...appConfig.oauthCookieOptions,
   });
   c.delete({
     name: GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME,
-    ...cookieOption,
+    ...appConfig.oauthCookieOptions,
   });
   c.delete({
     name: GOOGLE_OAUTH_NONCE_COOKIE_NAME,
-    ...cookieOption,
+    ...appConfig.oauthCookieOptions,
   });
 
   if (

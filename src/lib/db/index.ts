@@ -1,14 +1,9 @@
 import { Pool } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import * as schema from "./schema";
+import { appConfig } from "../config";
 
-export const getDB = (): string => {
-  const db: string | undefined = process.env.DATABASE_URL;
-
-  if (!db || db.length === 0) throw new Error("Missing DATABASE_URL");
-
-  return db;
-};
-
-export const pool = new Pool({ connectionString: getDB() });
+export const pool = new Pool({
+  connectionString: appConfig.database.connectionString,
+});
 export const db = drizzle(pool, { schema });

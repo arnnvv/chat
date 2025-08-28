@@ -12,11 +12,11 @@ import {
   importPublicKey,
 } from "@/lib/crypto";
 import type { Message } from "@/lib/db/schema";
-import { pusherClient } from "@/lib/pusher";
 import { cn, toPusherKey } from "@/lib/utils";
 import { cryptoStore } from "@/lib/crypto-store";
 import type { UserWithDevices } from "@/lib/getFriends";
 import { getPaginatedMessages } from "@/actions";
+import { pusherClient } from "@/lib/pusher-client";
 
 function ChatMessage({
   message,

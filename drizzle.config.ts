@@ -1,11 +1,11 @@
-import { getDB } from "@/lib/db";
+import { appConfig } from "@/lib/config";
 import type { Config } from "drizzle-kit";
 
 export default {
   schema: "./src/lib/db/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
-    url: getDB(),
+    url: appConfig.database.connectionString,
   },
   tablesFilter: ["chat_"],
   out: "./drizzle",

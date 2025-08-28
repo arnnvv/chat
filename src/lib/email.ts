@@ -6,6 +6,7 @@ import {
 import { eq } from "drizzle-orm";
 import { createTransport } from "nodemailer";
 import { generateRandomOTP } from "./otp";
+import { appConfig } from "./config";
 
 export const createEmailVerificationRequest = async (
   userId: number,
@@ -48,17 +49,17 @@ export const sendVerificationEmail = async (
   code: string,
 ): Promise<void> => {
   const transporter = createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
+    host: appConfig.email.smtpHost,
+    port: appConfig.email.smtpPort,
     secure: true,
     auth: {
-      user: process.env.EMAIL,
-      pass: process.env.EMAIL_PASS,
+      user: appConfig.email.user,
+      pass: appConfig.email.pass,
     },
   });
 
   const mailOptions = {
-    from: process.env.EMAIL,
+    from: appConfig.email.user,
     to: email,
     subject: "Your OTP",
     text: `Your OTP is ${code}`,

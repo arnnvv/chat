@@ -34,11 +34,11 @@ import { utapi } from "./lib/upload";
 import type { UploadFileResult } from "uploadthing/types";
 import type { ActionResult } from "./lib/formComtrol";
 import { validateEmail } from "./lib/validate";
-import { pusherServer } from "./lib/pusher";
 import { chatHrefConstructor, toPusherKey } from "./lib/utils";
 import { resolveIdstoUsers } from "./lib/resolveIdsToUsers";
 import { sendEmail } from "./lib/email";
 import { globalGETRateLimit, globalPOSTRateLimit } from "./lib/request";
+import { pusherServer } from "./lib/pusher-server";
 
 export const getCurrentSession = cache(
   async (): Promise<SessionValidationResult> => {

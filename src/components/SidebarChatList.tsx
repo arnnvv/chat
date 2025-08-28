@@ -3,7 +3,6 @@
 import { usePathname, useRouter } from "next/navigation";
 import { type JSX, useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
-import { pusherClient } from "@/lib/pusher";
 import { chatHrefConstructor, toPusherKey } from "@/lib/utils";
 import {
   decryptMessage,
@@ -14,6 +13,7 @@ import type { UserWithDevices } from "@/lib/getFriends";
 import { CustomToast } from "./CustomToast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cryptoStore } from "@/lib/crypto-store";
+import { pusherClient } from "@/lib/pusher-client";
 
 interface NotificationPayload {
   senderId: number;

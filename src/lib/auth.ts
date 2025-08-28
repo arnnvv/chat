@@ -4,6 +4,10 @@ import { users, sessions } from "./db/schema";
 import { eq } from "drizzle-orm";
 import { encodeBase32LowerCaseNoPadding, encodeHexLowerCase } from "./encoding";
 import { sha256 } from "./sha";
+import {
+  SESSION_MAX_AGE_SECONDS,
+  SESSION_REFRESH_THRESHOLD_SECONDS,
+} from "./constants";
 
 export type SessionValidationResult =
   | { session: Session; user: User }
@@ -21,10 +25,12 @@ export async function createSession(
   userId: number,
 ): Promise<Session> {
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+
   const session: Session = {
     id: sessionId,
     userId,
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+    expiresAt: expiresAt,
   };
   await db.insert(sessions).values(session);
   return session;
@@ -33,6 +39,7 @@ export async function createSession(
 export async function validateSessionToken(
   token: string,
 ): Promise<SessionValidationResult> {
+  "use cache";
   const sessionId = encodeHexLowerCase(sha256(new TextEncoder().encode(token)));
   const result = await db
     .select({ user: users, session: sessions })
@@ -53,8 +60,11 @@ export async function validateSessionToken(
       user: null,
     };
   }
-  if (Date.now() >= session.expiresAt.getTime() - 1000 * 60 * 60 * 24 * 15) {
-    session.expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
+  if (
+    Date.now() >=
+    session.expiresAt.getTime() - SESSION_REFRESH_THRESHOLD_SECONDS
+  ) {
+    session.expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS);
     await db
       .update(sessions)
       .set({

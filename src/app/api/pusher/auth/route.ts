@@ -1,5 +1,5 @@
 import { getCurrentSession } from "@/actions";
-import { pusherServer } from "@/lib/pusher";
+import { pusherServer } from "@/lib/pusher-server";
 import { globalPOSTRateLimit } from "@/lib/request";
 import { type NextRequest, NextResponse } from "next/server";
 

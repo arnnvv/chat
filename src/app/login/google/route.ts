@@ -13,7 +13,7 @@ import {
 } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/request";
 import { getCurrentSession } from "@/actions";
-import { cookieOption } from "@/lib/cookie";
+import { appConfig } from "@/lib/config";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {
@@ -36,7 +36,7 @@ export async function GET(request: Request): Promise<Response> {
   ]);
 
   const cookieOptions = {
-    ...cookieOption,
+    ...appConfig.oauthCookieOptions,
     maxAge: OAUTH_COOKIE_MAX_AGE_SECONDS,
   };
 

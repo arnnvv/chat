@@ -10,7 +10,7 @@ import { github } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/request";
 import { setSessionTokenCookie } from "@/lib/session";
 import { upsertUserFromGitHubProfile } from "@/lib/user";
-import { cookieOption } from "@/lib/cookie";
+import { appConfig } from "@/lib/config";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {
@@ -33,11 +33,11 @@ export async function GET(request: Request): Promise<Response> {
 
   c.delete({
     name: GITHUB_OAUTH_STATE_COOKIE_NAME,
-    ...cookieOption,
+    ...appConfig.oauthCookieOptions,
   });
   c.delete({
     name: GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME,
-    ...cookieOption,
+    ...appConfig.oauthCookieOptions,
   });
 
   if (
