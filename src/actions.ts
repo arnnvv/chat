@@ -39,6 +39,7 @@ import { resolveIdstoUsers } from "./lib/resolveIdsToUsers";
 import { sendEmail } from "./lib/email";
 import { globalGETRateLimit, globalPOSTRateLimit } from "./lib/request";
 import { pusherServer } from "./lib/pusher-server";
+import { revalidatePath } from "next/cache";
 
 export const getCurrentSession = cache(
   async (): Promise<SessionValidationResult> => {
@@ -660,6 +661,9 @@ export const changeUsernameAction = async (
       .set({ username: username })
       .where(eq(users.email, user.email))
       .returning();
+
+    revalidatePath("/");
+    revalidatePath("/dashboard");
 
     return {
       success: true,
