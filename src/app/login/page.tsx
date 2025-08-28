@@ -100,7 +100,7 @@ export default async function Page(): Promise<JSX.Element | undefined> {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Link href="/login/google" className="w-full">
+              <a href="/login/google" className="w-full">
                 <Button
                   variant="outline"
                   className="w-full bg-white hover:bg-gray-100 py-2"
@@ -126,8 +126,8 @@ export default async function Page(): Promise<JSX.Element | undefined> {
                   </svg>
                   Google
                 </Button>
-              </Link>
-              <Link href="/login/github" className="w-full">
+              </a>
+              <a href="/login/github" className="w-full">
                 <Button
                   variant="outline"
                   className="w-full bg-white hover:bg-gray-100 py-2"
@@ -135,7 +135,7 @@ export default async function Page(): Promise<JSX.Element | undefined> {
                   <Github className="w-5 h-5 mr-2" />
                   GitHub
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </CardFooter>

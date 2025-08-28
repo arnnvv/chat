@@ -10,6 +10,7 @@ import { github } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/request";
 import { setSessionTokenCookie } from "@/lib/session";
 import { upsertUserFromGitHubProfile } from "@/lib/user";
+import { cookieOption } from "@/lib/cookie";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {
@@ -30,8 +31,14 @@ export async function GET(request: Request): Promise<Response> {
   const codeVerifier =
     c.get(GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME)?.value ?? null;
 
-  c.delete(GITHUB_OAUTH_STATE_COOKIE_NAME);
-  c.delete(GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME);
+  c.delete({
+    name: GITHUB_OAUTH_STATE_COOKIE_NAME,
+    ...cookieOption,
+  });
+  c.delete({
+    name: GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME,
+    ...cookieOption,
+  });
 
   if (
     !code ||

@@ -7,6 +7,7 @@ import {
 } from "@/lib/constants";
 import { generateCodeVerifier, generateState, github } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/request";
+import { cookieOption } from "@/lib/cookie";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {
@@ -27,11 +28,8 @@ export async function GET(request: Request): Promise<Response> {
   ]);
 
   const cookieOptions = {
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
+    ...cookieOption,
     maxAge: OAUTH_COOKIE_MAX_AGE_SECONDS,
-    sameSite: "lax" as const,
   };
 
   (await cookies()).set(GITHUB_OAUTH_STATE_COOKIE_NAME, state, cookieOptions);
