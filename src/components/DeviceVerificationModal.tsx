@@ -28,15 +28,13 @@ export function DeviceVerificationModal({
   useEffect(() => {
     async function calculateSafetyNumber() {
       const myKeys = sessionUser.devices.map((d) => d.publicKey);
-      const theirVerifiedKeys = chatPartner.devices
-        .filter((d) => !unverifiedDevices.some((ud) => ud.id === d.id))
-        .map((d) => d.publicKey);
+      const theirKeys = chatPartner.devices.map((d) => d.publicKey);
 
-      const num = await generateSafetyNumber(myKeys, theirVerifiedKeys);
+      const num = await generateSafetyNumber(myKeys, theirKeys);
       setSafetyNumber(num);
     }
     calculateSafetyNumber();
-  }, [sessionUser, chatPartner, unverifiedDevices]);
+  }, [sessionUser, chatPartner]);
 
   const handleCheckboxChange = (deviceId: number, checked: boolean) => {
     setSelectedDeviceIds((prev) =>

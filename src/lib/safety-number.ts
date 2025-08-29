@@ -5,11 +5,10 @@ export async function generateSafetyNumber(
   myPublicKeys: string[],
   theirPublicKeys: string[],
 ): Promise<string> {
-  const sortedMyKeys = [...myPublicKeys].sort();
-  const sortedTheirKeys = [...theirPublicKeys].sort();
+  const allKeys = [...myPublicKeys, ...theirPublicKeys];
+  const sortedAllKeys = allKeys.sort();
 
-  const combinedKeys = sortedMyKeys.join("") + sortedTheirKeys.join("");
-
+  const combinedKeys = sortedAllKeys.join("");
   const hashBuffer = sha256(new TextEncoder().encode(combinedKeys));
   const hashHex = encodeHexLowerCase(hashBuffer);
 
