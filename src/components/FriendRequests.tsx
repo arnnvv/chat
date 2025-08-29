@@ -30,9 +30,7 @@ export const FriendRequests = ({
     useState<IncomingFriendRequest[]>(incommingFriendReqs);
 
   useEffect(() => {
-    const channelName = toPusherKey(
-      `private-user:${sessionId}:incoming_friend_request`,
-    );
+    const channelName = toPusherKey(`private-user:${sessionId}`);
     pusherClient.subscribe(channelName);
 
     const friendReqHandler = (payload: PusherPayload): void => {

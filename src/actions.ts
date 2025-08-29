@@ -35,7 +35,6 @@ import type { UploadFileResult } from "uploadthing/types";
 import type { ActionResult } from "./lib/formComtrol";
 import { validateEmail } from "./lib/validate";
 import { chatHrefConstructor, toPusherKey } from "./lib/utils";
-import { resolveIdstoUsers } from "./lib/resolveIdsToUsers";
 import { sendEmail } from "./lib/email";
 import { globalGETRateLimit, globalPOSTRateLimit } from "./lib/request";
 import { pusherServer } from "./lib/pusher-server";
@@ -763,15 +762,14 @@ export const addFriendAction = async (
           message: "You are already friends with this user",
         };
 
-    pusherServer.trigger(
-      toPusherKey(`private-user:${friend.id}:incoming_friend_request`),
-      `incoming_friend_request`,
-      {
-        senderId: user.id,
-        senderEmail: user.email,
-        senderName: user.username,
-      },
-    );
+    const channelName = toPusherKey(`private-user:${friend.id}`);
+
+    const eventName = "incoming_friend_request";
+    pusherServer.trigger(channelName, eventName, {
+      senderId: user.id,
+      senderEmail: user.email,
+      senderName: user.username,
+    });
 
     const newFriendRequest = {
       requesterId: user.id,
@@ -806,19 +804,29 @@ export const acceptFriendRequest = async (
       });
     if (!friendRequest) return { error: "Friend Request not found" };
 
-    const [friendRequester, user] = await resolveIdstoUsers([
-      friendRequestId,
-      sessionId,
+    const [friendRequester, user] = await Promise.all([
+      db.query.users.findFirst({
+        where: eq(users.id, friendRequestId),
+        with: { devices: { columns: { id: true, publicKey: true } } },
+      }),
+      db.query.users.findFirst({
+        where: eq(users.id, sessionId),
+        with: { devices: { columns: { id: true, publicKey: true } } },
+      }),
     ]);
+
+    if (!friendRequester || !user) {
+      return { error: "Could not find users to complete the request." };
+    }
 
     await Promise.all([
       pusherServer.trigger(
-        toPusherKey(`private-user:${friendRequestId}:friends`),
+        toPusherKey(`private-user:${friendRequestId}`),
         "new_friend",
         user,
       ),
       pusherServer.trigger(
-        toPusherKey(`private-user:${sessionId}:friends`),
+        toPusherKey(`private-user:${sessionId}`),
         "new_friend",
         friendRequester,
       ),
@@ -836,7 +844,7 @@ export const acceptFriendRequest = async (
 
     return { message: "Friend request accepted" };
   } catch (e) {
-    return { error: `failed to accept friend request: ${e}` };
+    return { error: `Failed to accept friend request: ${e}` };
   }
 };
 

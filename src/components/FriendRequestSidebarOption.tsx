@@ -17,36 +17,25 @@ export const FriendRequestSidebarOption = ({
     initialUnseenFriendRequests,
   );
 
-  const friendReqHandler = (): void => {
-    setUnsceenReq((prev: number): number => prev + 1);
-  };
+  useEffect(() => {
+    const channelName = toPusherKey(`private-user:${sessionId}`);
 
-  useEffect((): (() => void) => {
+    pusherClient.subscribe(channelName);
+
+    const friendReqHandler = (): void => {
+      setUnsceenReq((prev: number): number => prev + 1);
+    };
+
     const addedFriendHandler = (): void => {
       setUnsceenReq((prev: number): number => prev - 1);
     };
 
-    pusherClient.subscribe(
-      toPusherKey(`private-user:${sessionId}:incoming_friend_request`),
-    );
-
-    pusherClient.subscribe(toPusherKey(`private-user:${sessionId}:friends`));
-
-    pusherClient.bind(`incoming_friend_request`, friendReqHandler);
-
+    pusherClient.bind("incoming_friend_request", friendReqHandler);
     pusherClient.bind("new_friend", addedFriendHandler);
 
     return () => {
-      pusherClient.unsubscribe(
-        toPusherKey(`private-user:${sessionId}:incoming_friend_request`),
-      );
-
-      pusherClient.unsubscribe(
-        toPusherKey(`private-user:${sessionId}:friends`),
-      );
-
-      pusherClient.unbind(`incoming_friend_request`, friendReqHandler);
-
+      pusherClient.unsubscribe(channelName);
+      pusherClient.unbind("incoming_friend_request", friendReqHandler);
       pusherClient.unbind("new_friend", addedFriendHandler);
     };
   }, [sessionId]);

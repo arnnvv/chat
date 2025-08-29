@@ -47,7 +47,7 @@ export function OTPInput({ userEmail }: { userEmail: string }): JSX.Element {
       const result = await verifyOTPAction(formData);
       if (result?.success) {
         toast.success(result.message);
-        router.push("/");
+        router.refresh();
       } else {
         toast.error(result?.message || "Invalid OTP");
       }
@@ -85,12 +85,10 @@ export function OTPInput({ userEmail }: { userEmail: string }): JSX.Element {
     <div>
       <form onSubmit={handleSubmit}>
         <div className="flex justify-center space-x-4">
-          {/* Change: Create an array with a stable `id` for each item */}
           {Array.from({ length: OTP_LENGTH }, (_, index) => ({
             id: `otp-input-${index}`,
           })).map((item, index) => (
             <input
-              // Change: Use the stable `id` as the key
               key={item.id}
               type="text"
               name={`otp[${index}]`}
