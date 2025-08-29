@@ -719,21 +719,43 @@ export const addFriendAction = async (
   formData: FormData,
 ): Promise<ActionResult> => {
   const { user } = await getCurrentSession();
-  if (!user) return { success: false, message: "not logged in" };
+  if (!user) {
+    return {
+      success: false,
+      message: "not logged in",
+    };
+  }
   const receiverEmail = formData.get("friend-email") as string;
-  if (typeof receiverEmail !== "string")
-    return { success: false, message: "Invalid email" };
-  if (!validateEmail({ email: receiverEmail }))
-    return { success: false, message: "Invalid email" };
+  if (typeof receiverEmail !== "string") {
+    return {
+      success: false,
+      message: "Invalid email",
+    };
+  }
+  if (!validateEmail({ email: receiverEmail })) {
+    return {
+      success: false,
+      message: "Invalid email",
+    };
+  }
   try {
     const friend: User | undefined = await db.query.users.findFirst({
       where: (users, { eq }) => eq(users.email, receiverEmail),
     });
 
-    if (!friend) return { success: false, message: "User not found" };
+    if (!friend) {
+      return {
+        success: false,
+        message: "User not found",
+      };
+    }
 
-    if (friend.id === user.id)
-      return { success: false, message: "You can't add yourself as a friend" };
+    if (friend.id === user.id) {
+      return {
+        success: false,
+        message: "You can't add yourself as a friend",
+      };
+    }
 
     const existingRequest: FriendRequest | undefined =
       await db.query.friendRequests.findFirst({
@@ -754,21 +776,25 @@ export const addFriendAction = async (
       });
 
     if (existingRequest)
-      if (existingRequest.status === "pending")
-        return { success: false, message: "Friend request already sent" };
-      else
+      if (existingRequest.status === "pending") {
+        return {
+          success: false,
+          message: "Friend request already sent",
+        };
+      } else {
         return {
           success: false,
           message: "You are already friends with this user",
         };
-
+      }
     const channelName = toPusherKey(`private-user:${friend.id}`);
-
     const eventName = "incoming_friend_request";
+
     pusherServer.trigger(channelName, eventName, {
       senderId: user.id,
       senderEmail: user.email,
       senderName: user.username,
+      senderImage: user.picture,
     });
 
     const newFriendRequest = {
@@ -945,7 +971,7 @@ export const sendMessageAction = async ({
         chatPusherPayload,
       ),
       pusherServer.trigger(
-        toPusherKey(`private-user:${receiver.id}:chats`),
+        toPusherKey(`private-user:${receiver.id}`),
         "new_message_notification",
         notificationPusherPayload,
       ),

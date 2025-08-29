@@ -3,8 +3,18 @@
 import Link from "next/link";
 import { User } from "lucide-react";
 import { type JSX, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 import { toPusherKey } from "@/lib/utils";
 import { pusherClient } from "@/lib/pusher-client";
+import { CustomToast } from "./CustomToast";
+
+interface FriendRequestPayload {
+  senderId: number;
+  senderName: string;
+  senderEmail: string;
+  senderImage: string | null;
+}
 
 export const FriendRequestSidebarOption = ({
   sessionId,
@@ -16,14 +26,26 @@ export const FriendRequestSidebarOption = ({
   const [unsceenReq, setUnsceenReq] = useState<number>(
     initialUnseenFriendRequests,
   );
+  const pathname = usePathname();
 
   useEffect(() => {
     const channelName = toPusherKey(`private-user:${sessionId}`);
-
     pusherClient.subscribe(channelName);
 
-    const friendReqHandler = (): void => {
+    const friendReqHandler = (payload: FriendRequestPayload): void => {
       setUnsceenReq((prev: number): number => prev + 1);
+
+      if (pathname !== "/dashboard/requests") {
+        toast.custom((t: any) => (
+          <CustomToast
+            t={t}
+            href="/dashboard/requests"
+            senderName={payload.senderName}
+            senderMessage="Sent you a friend request"
+            image={payload.senderImage}
+          />
+        ));
+      }
     };
 
     const addedFriendHandler = (): void => {
@@ -38,7 +60,7 @@ export const FriendRequestSidebarOption = ({
       pusherClient.unbind("incoming_friend_request", friendReqHandler);
       pusherClient.unbind("new_friend", addedFriendHandler);
     };
-  }, [sessionId]);
+  }, [sessionId, pathname]);
 
   return (
     <Link
