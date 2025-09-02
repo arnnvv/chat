@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { getCurrentSession } from "@/actions";
+import { appConfig } from "@/lib/config";
 import {
   GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME,
   GITHUB_OAUTH_STATE_COOKIE_NAME,
@@ -7,7 +8,6 @@ import {
 } from "@/lib/constants";
 import { generateCodeVerifier, generateState, github } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/request";
-import { appConfig } from "@/lib/config";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {

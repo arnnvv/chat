@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   Children,
   cloneElement,
@@ -9,9 +10,8 @@ import {
   useTransition,
 } from "react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { Spinner } from "./ui/spinner";
 import { type ActionResult, isFormControl } from "@/lib/formComtrol";
+import { Spinner } from "./ui/spinner";
 
 export const SignOutFormComponent = ({
   children,

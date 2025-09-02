@@ -1,21 +1,10 @@
 "use server";
 
+import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { cache } from "react";
-import {
-  emailVerificationRequests,
-  friendReqStatusEnum,
-  type FriendRequest,
-  friendRequests,
-  messages,
-  type NewMessage,
-  type User,
-  users,
-  devices,
-  type Message,
-  deviceVerifications,
-} from "./lib/db/schema";
-import { db } from "./lib/db";
+import type { UploadFileResult } from "uploadthing/types";
 import {
   createSession,
   generateSessionToken,
@@ -23,22 +12,33 @@ import {
   type SessionValidationResult,
   validateSessionToken,
 } from "./lib/auth";
+import { db } from "./lib/db";
+import {
+  devices,
+  deviceVerifications,
+  emailVerificationRequests,
+  type FriendRequest,
+  friendReqStatusEnum,
+  friendRequests,
+  type Message,
+  messages,
+  type NewMessage,
+  type User,
+  users,
+} from "./lib/db/schema";
+import { sendEmail } from "./lib/email";
+import type { ActionResult } from "./lib/formComtrol";
 import {
   hashPassword,
   verifyPasswordHash,
   verifyPasswordStrength,
 } from "./lib/password";
-import { deleteSessionTokenCookie, setSessionTokenCookie } from "./lib/session";
-import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
-import { utapi } from "./lib/upload";
-import type { UploadFileResult } from "uploadthing/types";
-import type { ActionResult } from "./lib/formComtrol";
-import { validateEmail } from "./lib/validate";
-import { chatHrefConstructor, toPusherKey } from "./lib/utils";
-import { sendEmail } from "./lib/email";
-import { globalGETRateLimit, globalPOSTRateLimit } from "./lib/request";
 import { pusherServer } from "./lib/pusher-server";
-import { revalidatePath } from "next/cache";
+import { globalGETRateLimit, globalPOSTRateLimit } from "./lib/request";
+import { deleteSessionTokenCookie, setSessionTokenCookie } from "./lib/session";
+import { utapi } from "./lib/upload";
+import { chatHrefConstructor, toPusherKey } from "./lib/utils";
+import { validateEmail } from "./lib/validate";
 
 export const getCurrentSession = cache(
   async (): Promise<SessionValidationResult> => {

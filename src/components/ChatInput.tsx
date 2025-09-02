@@ -13,12 +13,12 @@ import ReactTextareaAutosize from "react-textarea-autosize";
 import { toast } from "sonner";
 import { getVerifiedDeviceIdsForContact, sendMessageAction } from "@/actions";
 import { Button } from "@/components/ui/button";
-import { cryptoStore } from "@/lib/crypto-store";
 import {
   deriveSharedSecret,
   encryptMessage,
   importPublicKey,
 } from "@/lib/crypto";
+import { cryptoStore } from "@/lib/crypto-store";
 import type { User } from "@/lib/db/schema";
 import type { UserWithDevices } from "@/lib/getFriends";
 

@@ -1,7 +1,7 @@
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "./db";
 import type { Device, FriendRequest, Message, User } from "./db/schema";
 import { users } from "./db/schema";
-import { inArray, sql, eq } from "drizzle-orm";
 
 export type UserWithDevices = User & {
   devices: Pick<Device, "id" | "publicKey">[];

@@ -1,10 +1,10 @@
+import { redirect } from "next/navigation";
+import type { JSX } from "react";
 import { getCurrentSession } from "@/actions";
 import { FriendRequests } from "@/components/FriendRequests";
 import type { FriendRequest, User } from "@/lib/db/schema";
 import { getFriendRequests } from "@/lib/getFriendRequests";
 import { resolveIdstoUsers } from "@/lib/resolveIdsToUsers";
-import { redirect } from "next/navigation";
-import type { JSX } from "react";
 
 export default async function page(): Promise<JSX.Element> {
   const { user } = await getCurrentSession();

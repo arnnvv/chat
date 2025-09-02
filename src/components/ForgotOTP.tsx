@@ -1,16 +1,16 @@
 "use client";
 
-import { resendOTPForgotPassword, verifyOTPForgotPassword } from "@/actions";
 import { useRouter } from "next/navigation";
 import {
   type FormEvent,
-  type KeyboardEvent,
-  useTransition,
-  useState,
-  useRef,
   type JSX,
+  type KeyboardEvent,
+  useRef,
+  useState,
+  useTransition,
 } from "react";
 import { toast } from "sonner";
+import { resendOTPForgotPassword, verifyOTPForgotPassword } from "@/actions";
 
 const OTP_LENGTH = 8;
 

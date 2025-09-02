@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { User } from "lucide-react";
-import { type JSX, useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { type JSX, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { toPusherKey } from "@/lib/utils";
 import { pusherClient } from "@/lib/pusher-client";
+import { toPusherKey } from "@/lib/utils";
 import { CustomToast } from "./CustomToast";
 
 interface FriendRequestPayload {

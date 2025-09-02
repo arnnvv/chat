@@ -1,12 +1,12 @@
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import type { JSX } from "react";
 import { forgotPasswordAction, getCurrentSession } from "@/actions";
+import { ForgotPasswordFormComponent } from "@/components/ForgotPasswordFormComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft } from "lucide-react";
-import { redirect } from "next/navigation";
 import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import type { JSX } from "react";
-import { ForgotPasswordFormComponent } from "@/components/ForgotPasswordFormComponent";
 
 export default async function Page(): Promise<JSX.Element> {
   const { session } = await getCurrentSession();

@@ -1,14 +1,14 @@
 "use client";
 
-import type { Device, Message, User } from "@/lib/db/schema";
-import { type JSX, useState, useEffect, useCallback } from "react";
 import { Lock } from "lucide-react";
+import { type JSX, useCallback, useEffect, useState } from "react";
 import {
   decryptMessage,
   deriveSharedSecret,
   importPublicKey,
 } from "@/lib/crypto";
 import { cryptoStore } from "@/lib/crypto-store";
+import type { Device, Message, User } from "@/lib/db/schema";
 
 interface MessagePayload {
   senderDeviceId: number;

@@ -1,11 +1,11 @@
 "use client";
 
-import { acceptFriendRequest, rejectFriendRequest } from "@/actions";
-import { pusherClient } from "@/lib/pusher-client";
-import { toPusherKey } from "@/lib/utils";
 import { Check, UserPlus, X } from "lucide-react";
 import { type JSX, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { acceptFriendRequest, rejectFriendRequest } from "@/actions";
+import { pusherClient } from "@/lib/pusher-client";
+import { toPusherKey } from "@/lib/utils";
 
 interface IncomingFriendRequest {
   id: number;

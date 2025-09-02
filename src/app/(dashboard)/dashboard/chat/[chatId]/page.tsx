@@ -1,14 +1,14 @@
+import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import type { JSX } from "react";
-import { eq } from "drizzle-orm";
 import {
   getCurrentSession,
   getPaginatedMessages,
   getVerifiedDeviceIdsForContact,
 } from "@/actions";
+import ChatInterface from "@/components/ChatInterface";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import ChatInterface from "@/components/ChatInterface";
 
 export default async function Page({
   params,

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
-import { SESSION_COOKIE_NAME } from "./constants";
 import { appConfig } from "./config";
+import { SESSION_COOKIE_NAME } from "./constants";
 
 export async function setSessionTokenCookie(
   token: string,

@@ -1,22 +1,22 @@
 "use client";
 
-import { type JSX, useRef, useState, useCallback, useEffect } from "react";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { format } from "date-fns";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { format } from "date-fns";
+import { Loader2 } from "lucide-react";
+import { type JSX, useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { getPaginatedMessages } from "@/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   decryptMessage,
   deriveSharedSecret,
   importPublicKey,
 } from "@/lib/crypto";
-import type { Message } from "@/lib/db/schema";
-import { cn, toPusherKey } from "@/lib/utils";
 import { cryptoStore } from "@/lib/crypto-store";
+import type { Message } from "@/lib/db/schema";
 import type { UserWithDevices } from "@/lib/getFriends";
-import { getPaginatedMessages } from "@/actions";
 import { pusherClient } from "@/lib/pusher-client";
+import { cn, toPusherKey } from "@/lib/utils";
 
 function ChatMessage({
   message,

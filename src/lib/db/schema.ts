@@ -1,6 +1,8 @@
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  check,
+  index,
   integer,
   pgEnum,
   pgTableCreator,
@@ -10,8 +12,6 @@ import {
   timestamp,
   uniqueIndex,
   varchar,
-  index,
-  check,
 } from "drizzle-orm/pg-core";
 
 export const createTable = pgTableCreator(

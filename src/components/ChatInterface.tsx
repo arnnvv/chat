@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
 import { ShieldAlert } from "lucide-react";
 import type { JSX } from "react";
-import type { Device, Message } from "@/lib/db/schema";
-import type { UserWithDevices } from "@/lib/getFriends";
+import { useState } from "react";
+import { toast } from "sonner";
 import { getVerifiedDeviceIdsForContact } from "@/actions";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessagesComp } from "@/components/MessagesComp";
 import { ChatInput } from "@/components/ChatInput";
 import { DeviceVerificationModal } from "@/components/DeviceVerificationModal";
+import { MessagesComp } from "@/components/MessagesComp";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import type { Device, Message } from "@/lib/db/schema";
+import type { UserWithDevices } from "@/lib/getFriends";
 
 interface ChatInterfaceProps {
   chatId: string;

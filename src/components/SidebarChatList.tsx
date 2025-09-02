@@ -1,19 +1,19 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { type JSX, useEffect, useState, useRef } from "react";
+import { type JSX, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { chatHrefConstructor, toPusherKey } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   decryptMessage,
   deriveSharedSecret,
   importPublicKey,
 } from "@/lib/crypto";
-import type { UserWithDevices } from "@/lib/getFriends";
-import { CustomToast } from "./CustomToast";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cryptoStore } from "@/lib/crypto-store";
+import type { UserWithDevices } from "@/lib/getFriends";
 import { pusherClient } from "@/lib/pusher-client";
+import { chatHrefConstructor, toPusherKey } from "@/lib/utils";
+import { CustomToast } from "./CustomToast";
 
 interface NotificationPayload {
   senderId: number;

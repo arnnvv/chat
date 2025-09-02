@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { users, type User } from "./db/schema";
 import { PROVIDER } from "./constants";
+import { db } from "./db";
+import { type User, users } from "./db/schema";
 
 type Provider = (typeof PROVIDER)[keyof typeof PROVIDER];
 

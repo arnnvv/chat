@@ -1,5 +1,5 @@
-import { sha256 } from "./sha";
 import { encodeHexLowerCase } from "./encoding";
+import { sha256 } from "./sha";
 
 export async function generateSafetyNumber(
   myPublicKeys: string[],

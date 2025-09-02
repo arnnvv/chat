@@ -1,18 +1,18 @@
-import { getCurrentSession } from "@/actions";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import {
-  getFriendsWithLastMessage,
-  type FriendWithLastMsg,
-} from "@/lib/getFriends";
-import { chatHrefConstructor } from "@/lib/utils";
 import { eq } from "drizzle-orm";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { JSX } from "react";
+import { getCurrentSession } from "@/actions";
 import { RecentChatPreview } from "@/components/RecentChatPreview";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import {
+  type FriendWithLastMsg,
+  getFriendsWithLastMessage,
+} from "@/lib/getFriends";
+import { chatHrefConstructor } from "@/lib/utils";
 
 export default async function Pager(): Promise<JSX.Element> {
   const { user, session } = await getCurrentSession();

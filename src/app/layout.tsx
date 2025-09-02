@@ -1,10 +1,10 @@
 import "./globals.css";
-import type { JSX, ReactNode } from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { cn } from "@/lib/utils";
-import { Toaster } from "@/components/ui/sonner";
+import type { JSX, ReactNode } from "react";
 import { Navbar } from "@/components/Navbar";
+import { Toaster } from "@/components/ui/sonner";
+import { cn } from "@/lib/utils";
 
 const fontSans = Inter({
   subsets: ["latin"],

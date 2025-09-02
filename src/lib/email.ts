@@ -1,12 +1,12 @@
+import { eq } from "drizzle-orm";
+import { createTransport } from "nodemailer";
+import { appConfig } from "./config";
 import { db } from "./db";
 import {
   type EmailVerificationRequest,
   emailVerificationRequests,
 } from "./db/schema";
-import { eq } from "drizzle-orm";
-import { createTransport } from "nodemailer";
 import { generateRandomOTP } from "./otp";
-import { appConfig } from "./config";
 
 export const createEmailVerificationRequest = async (
   userId: number,

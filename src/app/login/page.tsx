@@ -1,4 +1,10 @@
+import { Github } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { JSX } from "react";
+import { getCurrentSession, logInAction } from "@/actions";
+import { AuthFormComponent } from "@/components/AuthFormComponent";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -6,14 +12,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Github } from "lucide-react";
-import { getCurrentSession, logInAction } from "@/actions";
-import { AuthFormComponent } from "@/components/AuthFormComponent";
-import type { JSX } from "react";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/seperator";
 import { globalGETRateLimit } from "@/lib/request";
 

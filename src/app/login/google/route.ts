@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { getCurrentSession } from "@/actions";
+import { appConfig } from "@/lib/config";
 import {
   GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME,
   GOOGLE_OAUTH_NONCE_COOKIE_NAME,
@@ -12,8 +14,6 @@ import {
   google,
 } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/request";
-import { getCurrentSession } from "@/actions";
-import { appConfig } from "@/lib/config";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {

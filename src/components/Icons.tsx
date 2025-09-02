@@ -1,4 +1,4 @@
-import { type LucideProps, UserPlus, KeyRound } from "lucide-react";
+import { KeyRound, type LucideProps, UserPlus } from "lucide-react";
 import type { JSX } from "react";
 
 export const Icons = {

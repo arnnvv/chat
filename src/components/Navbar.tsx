@@ -1,3 +1,6 @@
+import { LogOut, Upload } from "lucide-react";
+import type { JSX } from "react";
+import { getCurrentSession, signOutAction, uploadFile } from "@/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -5,13 +8,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getCurrentSession, signOutAction, uploadFile } from "@/actions";
-import { LogOut, Upload } from "lucide-react";
-import { Button } from "./ui/button";
+import { FileInput } from "./FileInput";
 import { SignOutFormComponent } from "./SignOutForm";
 import { UploadFormComponent } from "./UploadFormComponent";
-import { FileInput } from "./FileInput";
-import type { JSX } from "react";
+import { Button } from "./ui/button";
 
 export const Navbar = async (): Promise<JSX.Element | null> => {
   const { user, session } = await getCurrentSession();

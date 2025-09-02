@@ -1,10 +1,10 @@
+import { redirect } from "next/navigation";
+import type { JSX } from "react";
 import { getCurrentSession, resetPasswordAction } from "@/actions";
 import { AuthFormComponent } from "@/components/AuthFormComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { redirect } from "next/navigation";
-import type { JSX } from "react";
 
 export default async function Page(props: {
   params: Promise<{

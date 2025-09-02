@@ -1,4 +1,7 @@
 import { cookies } from "next/headers";
+import { getCurrentSession } from "@/actions";
+import { createSession, generateSessionToken } from "@/lib/auth";
+import { appConfig } from "@/lib/config";
 import {
   GOOGLE_OAUTH_CODE_VERIFIER_COOKIE_NAME,
   GOOGLE_OAUTH_NONCE_COOKIE_NAME,
@@ -7,11 +10,8 @@ import {
 import { google } from "@/lib/oauth";
 import { ObjectParser } from "@/lib/parser";
 import { globalGETRateLimit } from "@/lib/request";
-import { upsertUserFromGoogleProfile } from "@/lib/user";
-import { getCurrentSession } from "@/actions";
-import { createSession, generateSessionToken } from "@/lib/auth";
 import { setSessionTokenCookie } from "@/lib/session";
-import { appConfig } from "@/lib/config";
+import { upsertUserFromGoogleProfile } from "@/lib/user";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {

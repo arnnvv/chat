@@ -17,6 +17,7 @@ import {
   SubTrigger,
   Trigger,
 } from "@radix-ui/react-dropdown-menu";
+import { Check, ChevronRight, Circle } from "lucide-react";
 import {
   type ComponentPropsWithoutRef,
   type ComponentRef,
@@ -24,7 +25,6 @@ import {
   type HTMLAttributes,
   type JSX,
 } from "react";
-import { Check, ChevronRight, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const DropdownMenu = Root;

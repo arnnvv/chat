@@ -1,11 +1,11 @@
+import { AtSign } from "lucide-react";
+import { redirect } from "next/navigation";
+import type { JSX } from "react";
 import { changeUsernameAction, getCurrentSession } from "@/actions";
 import { AuthFormComponent } from "@/components/AuthFormComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AtSign } from "lucide-react";
-import { redirect } from "next/navigation";
-import type { JSX } from "react";
 
 export default async function GetUsername(): Promise<JSX.Element> {
   const { session, user } = await getCurrentSession();

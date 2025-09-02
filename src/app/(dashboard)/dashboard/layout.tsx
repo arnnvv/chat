@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import type { JSX, ReactNode } from "react";
 import { getCurrentSession } from "@/actions";
+import { DeviceSetupCheck } from "@/components/DeviceSetupCheck";
 import { FriendRequestSidebarOption } from "@/components/FriendRequestSidebarOption";
 import { type Icon, Icons } from "@/components/Icons";
 import { SidebarChatList } from "@/components/SidebarChatList";
@@ -6,11 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { FriendRequest } from "@/lib/db/schema";
 import { getFriendRequests } from "@/lib/getFriendRequests";
 import { getFriends, type UserWithDevices } from "@/lib/getFriends";
-import type { Metadata } from "next";
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import type { JSX, ReactNode } from "react";
-import { DeviceSetupCheck } from "@/components/DeviceSetupCheck";
 
 export const metadata: Metadata = {
   title: "Dashboard",

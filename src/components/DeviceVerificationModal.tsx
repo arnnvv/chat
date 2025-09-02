@@ -1,12 +1,12 @@
 "use client";
 
+import { Loader2, ShieldCheck } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { verifyDevicesAction } from "@/actions";
 import type { UserWithDevices } from "@/lib/getFriends";
 import { generateSafetyNumber } from "@/lib/safety-number";
 import { Button } from "./ui/button";
-import { verifyDevicesAction } from "@/actions";
 
 interface DeviceVerificationModalProps {
   sessionUser: UserWithDevices;

@@ -1,12 +1,11 @@
 "use client";
 
-import { type FormEvent, useState, useTransition, type JSX } from "react";
+import { KeyRound } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { type FormEvent, type JSX, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { generateX25519KeyPair, exportPublicKey } from "@/lib/crypto";
+import { registerDeviceAction } from "@/actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -15,8 +14,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { KeyRound } from "lucide-react";
-import { registerDeviceAction } from "@/actions";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { exportPublicKey, generateX25519KeyPair } from "@/lib/crypto";
 import { cryptoStore } from "@/lib/crypto-store";
 
 export default function SetupDevicePage(): JSX.Element {

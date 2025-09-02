@@ -1,9 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type JSX, useEffect, useState, type ReactNode } from "react";
-import { Spinner } from "./ui/spinner";
+import { type JSX, type ReactNode, useEffect, useState } from "react";
 import { cryptoStore } from "@/lib/crypto-store";
+import { Spinner } from "./ui/spinner";
 
 export function DeviceSetupCheck({
   children,

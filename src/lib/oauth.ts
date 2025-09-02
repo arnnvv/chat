@@ -1,7 +1,7 @@
-import { encodeBase64urlNoPadding } from "./encoding";
-import { Google } from "./google";
-import { GitHub } from "./github";
 import { appConfig } from "./config";
+import { encodeBase64urlNoPadding } from "./encoding";
+import { GitHub } from "./github";
+import { Google } from "./google";
 
 export function generateState(): string {
   const randomValues = new Uint8Array(32);

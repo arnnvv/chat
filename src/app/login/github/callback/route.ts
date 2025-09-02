@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { getCurrentSession } from "@/actions";
 import { createSession, generateSessionToken } from "@/lib/auth";
+import { appConfig } from "@/lib/config";
 import {
   GITHUB_OAUTH_CODE_VERIFIER_COOKIE_NAME,
   GITHUB_OAUTH_STATE_COOKIE_NAME,
@@ -10,7 +11,6 @@ import { github } from "@/lib/oauth";
 import { globalGETRateLimit } from "@/lib/request";
 import { setSessionTokenCookie } from "@/lib/session";
 import { upsertUserFromGitHubProfile } from "@/lib/user";
-import { appConfig } from "@/lib/config";
 
 export async function GET(request: Request): Promise<Response> {
   if (!(await globalGETRateLimit())) {

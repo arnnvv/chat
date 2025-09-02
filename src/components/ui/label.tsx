@@ -1,6 +1,7 @@
 "use client";
+import { type LabelProps, Root } from "@radix-ui/react-label";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+import type { ClassProp } from "class-variance-authority/types";
 import {
   type ComponentPropsWithoutRef,
   type ComponentRef,
@@ -9,8 +10,7 @@ import {
   type JSX,
   type RefAttributes,
 } from "react";
-import type { ClassProp } from "class-variance-authority/types";
-import { type LabelProps, Root } from "@radix-ui/react-label";
+import { cn } from "@/lib/utils";
 
 const labelVariants = cva(
   "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",

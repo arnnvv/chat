@@ -1,5 +1,4 @@
 "use client";
-import { cn } from "@/lib/utils";
 import {
   type AvatarFallbackProps,
   type AvatarImageProps,
@@ -16,6 +15,7 @@ import {
   type JSX,
   type RefAttributes,
 } from "react";
+import { cn } from "@/lib/utils";
 
 export const Avatar = forwardRef<
   ComponentRef<typeof Root>,

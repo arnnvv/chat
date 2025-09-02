@@ -1,13 +1,13 @@
-import { db } from "./db";
-import type { User, Session } from "./db/schema";
-import { users, sessions } from "./db/schema";
 import { eq } from "drizzle-orm";
-import { encodeBase32LowerCaseNoPadding, encodeHexLowerCase } from "./encoding";
-import { sha256 } from "./sha";
 import {
   SESSION_MAX_AGE_SECONDS,
   SESSION_REFRESH_THRESHOLD_SECONDS,
 } from "./constants";
+import { db } from "./db";
+import type { Session, User } from "./db/schema";
+import { sessions, users } from "./db/schema";
+import { encodeBase32LowerCaseNoPadding, encodeHexLowerCase } from "./encoding";
+import { sha256 } from "./sha";
 
 export type SessionValidationResult =
   | { session: Session; user: User }

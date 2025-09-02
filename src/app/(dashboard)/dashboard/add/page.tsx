@@ -1,11 +1,11 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import type { JSX } from "react";
 import { addFriendAction, getCurrentSession } from "@/actions";
 import { FormComponent } from "@/components/FormComponent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import type { JSX } from "react";
 
 export const metadata: Metadata = {
   title: "Add friend",
