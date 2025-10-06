@@ -9,7 +9,7 @@
     "p": "NODE_OPTIONS='--no-deprecation' next start",
     "l": "biome check --write",
     "f": "biome format --write",
-    "cl": "rm -rf .next",
+    "cl": "rm -rf .next/",
     "ua": "pnpm dlx shadcn@latest add",
     "dg": "drizzle-kit generate --config=drizzle.config.ts",
     "dc": "drizzle-kit check --config=drizzle.config.ts",
