@@ -2,10 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@node-rs/argon2"],
+  reactCompiler: true,
   experimental: {
     ppr: true,
     useCache: true,
-    reactCompiler: true,
   },
   images: {
     remotePatterns: [
