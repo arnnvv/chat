@@ -1,11 +1,23 @@
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "./db";
-import type { Device, FriendRequest, Message, User } from "./db/schema";
+import type { Device, FriendRequest, Message } from "./db/schema";
 import { users } from "./db/schema";
+import type { PublicDeviceInfo, SafeUserWithDevices } from "./safe-user";
 
-export type UserWithDevices = User & {
-  devices: Pick<Device, "id" | "publicKey">[];
-};
+export type UserWithDevices = SafeUserWithDevices;
+
+const toPublicDeviceRow = (
+  device: Pick<
+    Device,
+    "id" | "userId" | "publicKey" | "identitySigningPublicKey" | "name"
+  >,
+): PublicDeviceInfo => ({
+  id: device.id,
+  userId: device.userId,
+  publicKey: device.publicKey,
+  identitySigningPublicKey: device.identitySigningPublicKey,
+  name: device.name,
+});
 
 export const getFriends = async (id: number): Promise<UserWithDevices[]> => {
   const friendships: FriendRequest[] = await db.query.friendRequests.findMany({
@@ -26,19 +38,32 @@ export const getFriends = async (id: number): Promise<UserWithDevices[]> => {
     return [];
   }
 
-  const friends: UserWithDevices[] = await db.query.users.findMany({
+  const friends = await db.query.users.findMany({
     where: inArray(users.id, friendIds),
+    columns: {
+      id: true,
+      username: true,
+      email: true,
+      verified: true,
+      picture: true,
+    },
     with: {
       devices: {
         columns: {
           id: true,
+          userId: true,
           publicKey: true,
+          identitySigningPublicKey: true,
+          name: true,
         },
       },
     },
   });
 
-  return friends;
+  return friends.map((friend) => ({
+    ...friend,
+    devices: friend.devices.map(toPublicDeviceRow),
+  }));
 };
 
 export interface FriendWithLastMsg extends UserWithDevices {
@@ -77,19 +102,23 @@ export const getFriendsWithLastMessage = async (
       f.friend_id,
       u.username,
       u.email,
-      u.password_hash,
       u.verified,
       u.picture,
-      u.google_id as "googleId",
-      u.github_id as "githubId",
       lm.id as "lastMessageId",
       lm.sender_id as "lastMessageSenderId",
       lm.recipient_id as "lastMessageRecipientId",
       lm.content as "lastMessageContent",
+      lm.protocol_version as "lastMessageProtocolVersion",
       lm.created_at as "lastMessageCreatedAt",
       (
         SELECT JSON_AGG(
-          JSON_BUILD_OBJECT('id', d.id, 'publicKey', d.public_key)
+          JSON_BUILD_OBJECT(
+            'id', d.id,
+            'userId', d.user_id,
+            'publicKey', d.public_key,
+            'identitySigningPublicKey', d.identity_signing_public_key,
+            'name', d.name
+          )
         )
         FROM chat_devices d
         WHERE d.user_id = f.friend_id
@@ -109,11 +138,8 @@ export const getFriendsWithLastMessage = async (
       id: row.friend_id,
       username: row.username,
       email: row.email,
-      password_hash: row.password_hash,
       verified: row.verified,
       picture: row.picture,
-      googleId: row.googleId,
-      githubId: row.githubId,
       devices: row.devices || [],
       lastMessage: row.lastMessageId
         ? {
@@ -121,6 +147,7 @@ export const getFriendsWithLastMessage = async (
             senderId: row.lastMessageSenderId,
             recipientId: row.lastMessageRecipientId,
             content: row.lastMessageContent,
+            protocolVersion: row.lastMessageProtocolVersion ?? 1,
             createdAt: new Date(row.lastMessageCreatedAt),
           }
         : {
@@ -128,6 +155,7 @@ export const getFriendsWithLastMessage = async (
             senderId: -1,
             recipientId: -1,
             content: " ",
+            protocolVersion: 1,
             createdAt: new Date(0),
           },
     }),

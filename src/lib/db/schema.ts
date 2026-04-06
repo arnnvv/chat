@@ -56,6 +56,9 @@ export const devices = createTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     publicKey: text("public_key").notNull(),
+    identitySigningPublicKey: text("identity_signing_public_key")
+      .notNull()
+      .default(""),
     name: varchar("name", { length: 100 }).notNull(),
     createdAt: timestamp("created_at", {
       withTimezone: true,
@@ -69,16 +72,22 @@ export const devices = createTable(
   ],
 );
 
-export const devicesRelations = relations(devices, ({ one }) => ({
+export const devicesRelations = relations(devices, ({ many, one }) => ({
   user: one(users, {
     fields: [devices.userId],
     references: [users.id],
   }),
+  signedPreKeys: many(signedPreKeys),
+  oneTimePreKeys: many(oneTimePreKeys),
 }));
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Device = typeof devices.$inferSelect;
+export type PublicDevice = Pick<
+  Device,
+  "id" | "userId" | "publicKey" | "identitySigningPublicKey" | "name"
+>;
 
 export const sessions = createTable("sessions", {
   id: text("id").primaryKey(),
@@ -158,6 +167,7 @@ export const messages = createTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
+    protocolVersion: integer("protocol_version").notNull().default(1),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "date",
@@ -175,6 +185,62 @@ export const messages = createTable(
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
 
+export const signedPreKeys = createTable(
+  "device_signed_prekeys",
+  {
+    id: serial("id").primaryKey(),
+    deviceId: integer("device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    keyId: integer("key_id").notNull(),
+    publicKey: text("public_key").notNull(),
+    signature: text("signature").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("device_signed_prekeys_device_key_idx").on(
+      table.deviceId,
+      table.keyId,
+    ),
+  ],
+);
+
+export type SignedPreKey = typeof signedPreKeys.$inferSelect;
+export type NewSignedPreKey = typeof signedPreKeys.$inferInsert;
+
+export const oneTimePreKeys = createTable(
+  "device_one_time_prekeys",
+  {
+    id: serial("id").primaryKey(),
+    deviceId: integer("device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    keyId: integer("key_id").notNull(),
+    publicKey: text("public_key").notNull(),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "date",
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("device_one_time_prekeys_device_key_idx").on(
+      table.deviceId,
+      table.keyId,
+    ),
+  ],
+);
+
+export type OneTimePreKey = typeof oneTimePreKeys.$inferSelect;
+export type NewOneTimePreKey = typeof oneTimePreKeys.$inferInsert;
+
 export const deviceVerifications = createTable(
   "device_verifications",
   {
@@ -191,3 +257,17 @@ export const deviceVerifications = createTable(
     }),
   ],
 );
+
+export const signedPreKeysRelations = relations(signedPreKeys, ({ one }) => ({
+  device: one(devices, {
+    fields: [signedPreKeys.deviceId],
+    references: [devices.id],
+  }),
+}));
+
+export const oneTimePreKeysRelations = relations(oneTimePreKeys, ({ one }) => ({
+  device: one(devices, {
+    fields: [oneTimePreKeys.deviceId],
+    references: [devices.id],
+  }),
+}));

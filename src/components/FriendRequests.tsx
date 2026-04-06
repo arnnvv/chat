@@ -55,7 +55,7 @@ export const FriendRequests = ({
   }, [sessionId]);
 
   const handleAccept = async (senderId: number) => {
-    const res = await acceptFriendRequest(senderId, sessionId);
+    const res = await acceptFriendRequest(senderId);
     if ("error" in res) {
       toast.error(res.error);
     } else {
@@ -65,7 +65,7 @@ export const FriendRequests = ({
   };
 
   const handleReject = async (senderId: number) => {
-    const res = await rejectFriendRequest(senderId, sessionId);
+    const res = await rejectFriendRequest(senderId);
     if ("error" in res) {
       toast.error(res.error);
     } else {

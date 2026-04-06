@@ -23,7 +23,24 @@ export async function RecentChats() {
 
   const sessionUserWithDevices = await db.query.users.findFirst({
     where: eq(users.id, user.id),
-    with: { devices: { columns: { id: true, publicKey: true } } },
+    columns: {
+      id: true,
+      username: true,
+      email: true,
+      verified: true,
+      picture: true,
+    },
+    with: {
+      devices: {
+        columns: {
+          id: true,
+          userId: true,
+          publicKey: true,
+          identitySigningPublicKey: true,
+          name: true,
+        },
+      },
+    },
   });
 
   if (!sessionUserWithDevices) return redirect("/login");

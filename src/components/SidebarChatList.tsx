@@ -1,27 +1,27 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { type JSX, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { type JSX, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  decryptMessage,
-  deriveSharedSecret,
-  importPublicKey,
-} from "@/lib/crypto";
+import { decryptConversationMessage } from "@/lib/crypto/client";
 import { cryptoStore } from "@/lib/crypto-store";
+import type { Message } from "@/lib/db/schema";
 import type { UserWithDevices } from "@/lib/getFriends";
 import { pusherClient } from "@/lib/pusher-client";
+import { parseStoredMessagePayload } from "@/lib/crypto/wire-format";
 import { chatHrefConstructor, toPusherKey } from "@/lib/utils";
 import { CustomToast } from "./CustomToast";
 
 interface NotificationPayload {
-  senderId: number;
-  senderName: string;
-  senderImage: string | null;
   chatId: string;
-  senderDeviceId: number;
-  encryptedPreviews: Record<number, string>;
+  contactId: number;
+  contactName: string;
+  contactImage: string | null;
+  message: Message & {
+    senderName?: string;
+    senderImage?: string | null;
+  };
 }
 
 export const SidebarChatList = ({
@@ -35,106 +35,91 @@ export const SidebarChatList = ({
     Record<number, number>
   >({});
   const [activeChats, setActiveChats] = useState<UserWithDevices[]>(friends);
+  const [ownDeviceId, setOwnDeviceId] = useState<number | null>(null);
   const pathname: string | null = usePathname();
-  const router = useRouter();
-
-  const cryptoKeysRef = useRef<{
-    ownPrivateKey: CryptoKey | null;
-    ownDeviceId: string | null;
-  }>({
-    ownPrivateKey: null,
-    ownDeviceId: null,
-  });
 
   useEffect(() => {
-    const initializeCrypto = async () => {
-      const privateKey = await cryptoStore.getKey("privateKey");
-      const deviceId = await cryptoStore.getDeviceId();
+    setActiveChats(friends);
+  }, [friends]);
 
-      if (privateKey && deviceId) {
-        cryptoKeysRef.current = {
-          ownPrivateKey: privateKey,
-          ownDeviceId: deviceId,
-        };
-      } else {
-        console.error(
-          "SidebarChatList: Crypto keys not found. Toasts will not be decrypted.",
-        );
+  useEffect(() => {
+    const loadDeviceId = async () => {
+      const storedDeviceId = await cryptoStore.getDeviceId();
+      if (!storedDeviceId) {
+        return;
+      }
+
+      const parsedDeviceId = Number.parseInt(storedDeviceId, 10);
+      if (Number.isInteger(parsedDeviceId)) {
+        setOwnDeviceId(parsedDeviceId);
       }
     };
-    initializeCrypto();
 
+    loadDeviceId();
+  }, []);
+
+  useEffect(() => {
     const channelName = toPusherKey(`private-user:${sessionId}`);
     pusherClient.subscribe(channelName);
 
     const newMessageHandler = async (payload: NotificationPayload) => {
-      const shouldNotify: boolean =
-        pathname !== `/dashboard/chat/${payload.chatId}`;
+      const parsedPayload = parseStoredMessagePayload(payload.message.content);
+      const senderDeviceId =
+        parsedPayload && "senderDeviceId" in parsedPayload
+          ? parsedPayload.senderDeviceId
+          : null;
 
-      if (!shouldNotify) return;
+      if (
+        ownDeviceId !== null &&
+        payload.message.senderId === sessionId &&
+        senderDeviceId === ownDeviceId
+      ) {
+        return;
+      }
+
+      const shouldNotify = pathname !== `/dashboard/chat/${payload.chatId}`;
+      const contact = activeChats.find(
+        (friend) => friend.id === payload.contactId,
+      );
 
       let decryptedContent = "You received an encrypted message.";
-      const { ownPrivateKey, ownDeviceId } = cryptoKeysRef.current;
-
-      if (ownPrivateKey && ownDeviceId) {
+      if (contact) {
         try {
-          const ciphertextForThisDevice =
-            payload.encryptedPreviews[+ownDeviceId];
-
-          if (!ciphertextForThisDevice) {
-            decryptedContent = "New message (not for this device)";
-          } else {
-            const sender = activeChats.find(
-              (friend) => friend.id === payload.senderId,
-            );
-            const senderDevice = sender?.devices.find(
-              (d) => d.id === payload.senderDeviceId,
-            );
-
-            if (!senderDevice?.publicKey) {
-              throw new Error("Sender public key not found for toast.");
-            }
-
-            const senderPublicKey = await importPublicKey(
-              senderDevice.publicKey,
-            );
-            const sharedKey = await deriveSharedSecret(
-              ownPrivateKey,
-              senderPublicKey,
-            );
-            decryptedContent = await decryptMessage(
-              sharedKey,
-              ciphertextForThisDevice,
-            );
-          }
-        } catch (e) {
-          console.error("Failed to decrypt toast notification:", e);
+          decryptedContent = await decryptConversationMessage({
+            message: payload.message,
+            currentUserId: sessionId,
+            contact,
+          });
+        } catch {
+          decryptedContent = "You received an encrypted message.";
         }
       }
 
-      toast.custom(
-        (t: any): JSX.Element => (
-          <CustomToast
-            t={t}
-            href={`/dashboard/chat/${chatHrefConstructor(
-              sessionId,
-              payload.senderId,
-            )}`}
-            senderMessage={decryptedContent}
-            senderName={payload.senderName}
-            image={payload.senderImage}
-          />
-        ),
-      );
+      if (shouldNotify) {
+        toast.custom(
+          (t: any): JSX.Element => (
+            <CustomToast
+              t={t}
+              href={`/dashboard/chat/${payload.chatId}`}
+              senderMessage={decryptedContent}
+              senderName={payload.contactName}
+              image={payload.contactImage}
+            />
+          ),
+        );
 
-      setUnseenMessagesCount((prev) => ({
-        ...prev,
-        [payload.senderId]: (prev[payload.senderId] || 0) + 1,
-      }));
+        setUnseenMessagesCount((prev) => ({
+          ...prev,
+          [payload.contactId]: (prev[payload.contactId] || 0) + 1,
+        }));
+      }
     };
 
     const newFriendHandler = (newFriend: UserWithDevices) => {
-      setActiveChats((prev) => [...prev, newFriend]);
+      setActiveChats((prev) => {
+        const existing = prev.some((friend) => friend.id === newFriend.id);
+        return existing ? prev : [...prev, newFriend];
+      });
     };
 
     pusherClient.bind("new_message_notification", newMessageHandler);
@@ -145,7 +130,7 @@ export const SidebarChatList = ({
       pusherClient.unbind("new_message_notification", newMessageHandler);
       pusherClient.unbind("new_friend", newFriendHandler);
     };
-  }, [sessionId, router, pathname, activeChats]);
+  }, [activeChats, ownDeviceId, pathname, sessionId]);
 
   useEffect(() => {
     if (pathname?.includes("chat")) {
@@ -154,9 +139,9 @@ export const SidebarChatList = ({
       );
       if (chatPartnerId && unseenMessagesCount[chatPartnerId]) {
         setUnseenMessagesCount((prev) => {
-          const newCounts = { ...prev };
-          delete newCounts[chatPartnerId];
-          return newCounts;
+          const nextCounts = { ...prev };
+          delete nextCounts[chatPartnerId];
+          return nextCounts;
         });
       }
     }

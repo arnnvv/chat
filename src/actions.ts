@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, inArray, lt, or } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { cache } from "react";
@@ -15,6 +15,7 @@ import {
 import { db } from "./lib/db";
 import {
   devices,
+  type Device,
   deviceVerifications,
   emailVerificationRequests,
   type FriendRequest,
@@ -23,9 +24,12 @@ import {
   type Message,
   messages,
   type NewMessage,
+  oneTimePreKeys,
+  signedPreKeys,
   type User,
   users,
 } from "./lib/db/schema";
+import type { StoredMessagePayload } from "./lib/crypto/wire-format";
 import { sendEmail } from "./lib/email";
 import type { ActionResult } from "./lib/formComtrol";
 import {
@@ -35,6 +39,11 @@ import {
 } from "./lib/password";
 import { pusherServer } from "./lib/pusher-server";
 import { globalGETRateLimit, globalPOSTRateLimit } from "./lib/request";
+import {
+  type PublicDeviceInfo,
+  type SafeUser,
+  type SafeUserWithDevices,
+} from "./lib/safe-user";
 import { deleteSessionTokenCookie, setSessionTokenCookie } from "./lib/session";
 import { utapi } from "./lib/upload";
 import { chatHrefConstructor, toPusherKey } from "./lib/utils";
@@ -54,6 +63,122 @@ export const getCurrentSession = cache(
   },
 );
 
+function toSafeUser(
+  user: Pick<User, "id" | "username" | "email" | "verified" | "picture">,
+): SafeUser {
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    verified: user.verified,
+    picture: user.picture,
+  };
+}
+
+function toPublicDeviceInfo(
+  device: Pick<
+    Device,
+    "id" | "userId" | "publicKey" | "identitySigningPublicKey" | "name"
+  >,
+): PublicDeviceInfo {
+  return {
+    id: device.id,
+    userId: device.userId,
+    publicKey: device.publicKey,
+    identitySigningPublicKey: device.identitySigningPublicKey,
+    name: device.name,
+  };
+}
+
+async function getSafeUserWithDevicesById(
+  userId: number,
+): Promise<SafeUserWithDevices | null> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: {
+      id: true,
+      username: true,
+      email: true,
+      verified: true,
+      picture: true,
+    },
+    with: {
+      devices: {
+        columns: {
+          id: true,
+          userId: true,
+          publicKey: true,
+          identitySigningPublicKey: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    ...toSafeUser(user),
+    devices: user.devices.map(toPublicDeviceInfo),
+  };
+}
+
+async function areUsersFriends(
+  userIdA: number,
+  userIdB: number,
+): Promise<boolean> {
+  if (userIdA === userIdB) {
+    return true;
+  }
+
+  const friendship = await db.query.friendRequests.findFirst({
+    where: (requests, { and, or }) =>
+      and(
+        or(
+          and(
+            eq(requests.requesterId, userIdA),
+            eq(requests.recipientId, userIdB),
+          ),
+          and(
+            eq(requests.requesterId, userIdB),
+            eq(requests.recipientId, userIdA),
+          ),
+        ),
+        eq(requests.status, "accepted"),
+      ),
+    columns: {
+      id: true,
+    },
+  });
+
+  return Boolean(friendship);
+}
+
+async function requireAuthenticatedUser(): Promise<User> {
+  const { user } = await getCurrentSession();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+  return user;
+}
+
+async function getOwnedDeviceOrThrow(
+  userId: number,
+  deviceId: number,
+): Promise<Device> {
+  const device = await db.query.devices.findFirst({
+    where: and(eq(devices.id, deviceId), eq(devices.userId, userId)),
+  });
+
+  if (!device) {
+    throw new Error("Device not found for authenticated user.");
+  }
+
+  return device;
+}
+
 export const logInAction = async (
   _: any,
   formData: FormData,
@@ -61,7 +186,7 @@ export const logInAction = async (
   success: boolean;
   message: string;
 }> => {
-  if (!globalPOSTRateLimit()) {
+  if (!(await globalPOSTRateLimit())) {
     return {
       success: false,
       message: "Too many requests",
@@ -144,7 +269,7 @@ export const signUpAction = async (
   success: boolean;
   message: string;
 }> => {
-  if (!globalPOSTRateLimit()) {
+  if (!(await globalPOSTRateLimit())) {
     return {
       success: false,
       message: "Too many requests",
@@ -260,7 +385,7 @@ export const signOutAction = async (): Promise<{
   success: boolean;
   message: string;
 }> => {
-  if (!globalGETRateLimit()) {
+  if (!(await globalGETRateLimit())) {
     return {
       success: false,
       message: "Too many requests",
@@ -290,7 +415,7 @@ export const signOutAction = async (): Promise<{
 };
 
 export async function verifyOTPAction(formData: FormData) {
-  if (!globalPOSTRateLimit()) {
+  if (!(await globalPOSTRateLimit())) {
     return {
       success: false,
       message: "Too many requests",
@@ -354,7 +479,7 @@ export async function verifyOTPAction(formData: FormData) {
 }
 
 export async function resendOTPAction() {
-  if (!globalGETRateLimit()) {
+  if (!(await globalGETRateLimit())) {
     return {
       success: false,
       message: "Rate Limit",
@@ -389,7 +514,7 @@ export async function forgotPasswordAction(
   _: any,
   formData: FormData,
 ): Promise<ActionResult> {
-  if (!globalPOSTRateLimit()) {
+  if (!(await globalPOSTRateLimit())) {
     return {
       success: false,
       message: "Rate Limit",
@@ -437,7 +562,7 @@ export async function forgotPasswordAction(
 }
 
 export async function verifyOTPForgotPassword(formData: FormData) {
-  if (!globalPOSTRateLimit()) {
+  if (!(await globalPOSTRateLimit())) {
     return {
       success: false,
       message: "Too many requests",
@@ -519,7 +644,7 @@ export async function verifyOTPForgotPassword(formData: FormData) {
 }
 
 export async function resendOTPForgotPassword(email: string) {
-  if (!globalPOSTRateLimit()) {
+  if (!(await globalPOSTRateLimit())) {
     return {
       success: false,
       message: "Rate Limit",
@@ -718,6 +843,13 @@ export const addFriendAction = async (
   _: any,
   formData: FormData,
 ): Promise<ActionResult> => {
+  if (!(await globalPOSTRateLimit())) {
+    return {
+      success: false,
+      message: "Too many requests",
+    };
+  }
+
   const { user } = await getCurrentSession();
   if (!user) {
     return {
@@ -790,7 +922,7 @@ export const addFriendAction = async (
     const channelName = toPusherKey(`private-user:${friend.id}`);
     const eventName = "incoming_friend_request";
 
-    pusherServer.trigger(channelName, eventName, {
+    await pusherServer.trigger(channelName, eventName, {
       senderId: user.id,
       senderEmail: user.email,
       senderName: user.username,
@@ -813,32 +945,26 @@ export const addFriendAction = async (
 
 export const acceptFriendRequest = async (
   friendRequestId: number,
-  sessionId: number,
 ): Promise<
   | { error: string; message?: undefined }
   | { message: string; error?: undefined }
 > => {
   try {
+    const sessionUser = await requireAuthenticatedUser();
     const friendRequest: FriendRequest | undefined =
       await db.query.friendRequests.findFirst({
         where: (requests, { and, eq }) =>
           and(
             eq(requests.requesterId, friendRequestId),
-            eq(requests.recipientId, sessionId),
+            eq(requests.recipientId, sessionUser.id),
             eq(requests.status, "pending"),
           ),
       });
     if (!friendRequest) return { error: "Friend Request not found" };
 
     const [friendRequester, user] = await Promise.all([
-      db.query.users.findFirst({
-        where: eq(users.id, friendRequestId),
-        with: { devices: { columns: { id: true, publicKey: true } } },
-      }),
-      db.query.users.findFirst({
-        where: eq(users.id, sessionId),
-        with: { devices: { columns: { id: true, publicKey: true } } },
-      }),
+      getSafeUserWithDevicesById(friendRequestId),
+      getSafeUserWithDevicesById(sessionUser.id),
     ]);
 
     if (!friendRequester || !user) {
@@ -852,7 +978,7 @@ export const acceptFriendRequest = async (
         user,
       ),
       pusherServer.trigger(
-        toPusherKey(`private-user:${sessionId}`),
+        toPusherKey(`private-user:${sessionUser.id}`),
         "new_friend",
         friendRequester,
       ),
@@ -862,7 +988,7 @@ export const acceptFriendRequest = async (
         .where(
           and(
             eq(friendRequests.requesterId, friendRequestId),
-            eq(friendRequests.recipientId, sessionId),
+            eq(friendRequests.recipientId, sessionUser.id),
             eq(friendRequests.status, "pending"),
           ),
         ),
@@ -876,18 +1002,18 @@ export const acceptFriendRequest = async (
 
 export const rejectFriendRequest = async (
   friendRequestId: number,
-  sessionId: number,
 ): Promise<
   | { error: string; message?: undefined }
   | { message: string; error?: undefined }
 > => {
   try {
+    const sessionUser = await requireAuthenticatedUser();
     const friendRequest: FriendRequest | undefined =
       await db.query.friendRequests.findFirst({
         where: (requests, { and, eq }) =>
           and(
             eq(requests.requesterId, friendRequestId),
-            eq(requests.recipientId, sessionId),
+            eq(requests.recipientId, sessionUser.id),
             eq(requests.status, "pending"),
           ),
       });
@@ -898,7 +1024,7 @@ export const rejectFriendRequest = async (
       .where(
         and(
           eq(friendRequests.requesterId, friendRequestId),
-          eq(friendRequests.recipientId, sessionId),
+          eq(friendRequests.recipientId, sessionUser.id),
         ),
       );
 
@@ -910,35 +1036,74 @@ export const rejectFriendRequest = async (
 
 export const sendMessageAction = async ({
   senderDeviceId,
-  encryptedContent,
-  sender,
-  receiver,
+  receiverId,
+  payload,
+  protocolVersion,
 }: {
   senderDeviceId: number;
-  encryptedContent: Record<number, string>;
-  sender: Omit<User, "password">;
-  receiver: User;
+  receiverId: number;
+  payload: StoredMessagePayload;
+  protocolVersion: 1 | 2;
 }): Promise<
   | {
       message: string;
+      sentMessage: Message;
       error?: undefined;
     }
   | {
       error: string;
       message?: undefined;
+      sentMessage?: undefined;
     }
   | undefined
 > => {
   try {
-    const contentPayload = JSON.stringify({
-      senderDeviceId,
-      recipients: encryptedContent,
+    if (!(await globalPOSTRateLimit())) {
+      return { error: "Too many requests" };
+    }
+
+    const sender = await requireAuthenticatedUser();
+    await getOwnedDeviceOrThrow(sender.id, senderDeviceId);
+
+    if (payload.senderDeviceId !== senderDeviceId) {
+      return { error: "Sender device mismatch." };
+    }
+
+    const canMessage = await areUsersFriends(sender.id, receiverId);
+    if (!canMessage) {
+      return { error: "You can only message accepted contacts." };
+    }
+
+    const allAllowedDevices = await db.query.devices.findMany({
+      where: or(eq(devices.userId, sender.id), eq(devices.userId, receiverId)),
+      columns: {
+        id: true,
+        userId: true,
+      },
     });
+
+    const allowedDeviceIds = new Set(
+      allAllowedDevices.map((device) => device.id),
+    );
+    const recipientDeviceIds = Object.keys(payload.recipients).map((id) =>
+      Number.parseInt(id, 10),
+    );
+
+    if (
+      recipientDeviceIds.length === 0 ||
+      recipientDeviceIds.some(
+        (deviceId) =>
+          !Number.isInteger(deviceId) || !allowedDeviceIds.has(deviceId),
+      )
+    ) {
+      return { error: "Message recipients are invalid." };
+    }
 
     const messageData: NewMessage = {
       senderId: sender.id,
-      recipientId: receiver.id,
-      content: contentPayload,
+      recipientId: receiverId,
+      content: JSON.stringify(payload),
+      protocolVersion,
       createdAt: new Date(),
     };
 
@@ -947,39 +1112,65 @@ export const sendMessageAction = async ({
       .values(messageData)
       .returning();
 
+    const receiver = await db.query.users.findFirst({
+      where: eq(users.id, receiverId),
+      columns: {
+        id: true,
+        username: true,
+        picture: true,
+      },
+    });
+
+    if (!receiver) {
+      return { error: "Receiver not found." };
+    }
+
     const chatPusherPayload = {
       ...insertedMessage,
       senderName: sender.username,
       senderImage: sender.picture,
     };
 
-    const notificationPusherPayload = {
-      senderId: sender.id,
-      senderName: sender.username,
-      senderImage: sender.picture,
-      chatId: chatHrefConstructor(sender.id, receiver.id),
-      senderDeviceId,
-      encryptedPreviews: encryptedContent,
-    };
-
-    await Promise.all([
+    const chatId = chatHrefConstructor(sender.id, receiverId);
+    const notificationEvents = [
       pusherServer.trigger(
-        toPusherKey(
-          `private-chat:${chatHrefConstructor(sender.id, receiver.id)}`,
-        ),
+        toPusherKey(`private-chat:${chatId}`),
         "incoming-message",
         chatPusherPayload,
       ),
       pusherServer.trigger(
-        toPusherKey(`private-user:${receiver.id}`),
+        toPusherKey(`private-user:${receiverId}`),
         "new_message_notification",
-        notificationPusherPayload,
+        {
+          chatId,
+          contactId: sender.id,
+          contactName: sender.username,
+          contactImage: sender.picture,
+          message: chatPusherPayload,
+        },
       ),
-    ]);
+    ];
 
-    return { message: "Message sent" };
+    if (sender.id !== receiverId) {
+      notificationEvents.push(
+        pusherServer.trigger(
+          toPusherKey(`private-user:${sender.id}`),
+          "new_message_notification",
+          {
+            chatId,
+            contactId: receiver.id,
+            contactName: receiver.username,
+            contactImage: receiver.picture,
+            message: chatPusherPayload,
+          },
+        ),
+      );
+    }
+
+    await Promise.all(notificationEvents);
+
+    return { message: "Message sent", sentMessage: insertedMessage };
   } catch (e) {
-    console.error("Error sending message:", e);
     return { error: `Failed to send message: ${e}` };
   }
 };
@@ -988,7 +1179,7 @@ export async function registerDeviceAction(
   publicKey: string,
   deviceName: string,
 ): Promise<ActionResult> {
-  if (!globalPOSTRateLimit()) {
+  if (!(await globalPOSTRateLimit())) {
     return { success: false, message: "Too many requests" };
   }
 
@@ -1033,6 +1224,461 @@ export async function registerDeviceAction(
   }
 }
 
+type SignedPreKeyInput = {
+  keyId: number;
+  publicKey: string;
+  signature: string;
+};
+
+type OneTimePreKeyInput = {
+  keyId: number;
+  publicKey: string;
+};
+
+type PublishKeyBundleInput = {
+  devicePublicKey: string;
+  identitySigningPublicKey: string;
+  deviceName: string;
+  signedPreKey: SignedPreKeyInput;
+  oneTimePreKeys: OneTimePreKeyInput[];
+};
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+function isValidNumericKeyId(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function validateSignedPreKeyInput(value: SignedPreKeyInput): boolean {
+  return (
+    isValidNumericKeyId(value.keyId) &&
+    isNonEmptyString(value.publicKey) &&
+    isNonEmptyString(value.signature)
+  );
+}
+
+function validateOneTimePreKeyInput(value: OneTimePreKeyInput): boolean {
+  return isValidNumericKeyId(value.keyId) && isNonEmptyString(value.publicKey);
+}
+
+export async function publishKeyBundleAction(
+  input: PublishKeyBundleInput,
+): Promise<ActionResult & { deviceId?: number }> {
+  if (!(await globalPOSTRateLimit())) {
+    return { success: false, message: "Too many requests" };
+  }
+
+  try {
+    const user = await requireAuthenticatedUser();
+
+    if (
+      !isNonEmptyString(input.devicePublicKey) ||
+      !isNonEmptyString(input.identitySigningPublicKey) ||
+      !isNonEmptyString(input.deviceName) ||
+      !validateSignedPreKeyInput(input.signedPreKey) ||
+      !Array.isArray(input.oneTimePreKeys) ||
+      input.oneTimePreKeys.some((key) => !validateOneTimePreKeyInput(key))
+    ) {
+      return { success: false, message: "Invalid key bundle payload." };
+    }
+
+    const deviceId = await db.transaction(async (tx) => {
+      const existingDevice = await tx.query.devices.findFirst({
+        where: and(
+          eq(devices.userId, user.id),
+          eq(devices.publicKey, input.devicePublicKey),
+        ),
+        columns: {
+          id: true,
+        },
+      });
+
+      const resolvedDeviceId = existingDevice
+        ? existingDevice.id
+        : (
+            await tx
+              .insert(devices)
+              .values({
+                userId: user.id,
+                publicKey: input.devicePublicKey,
+                identitySigningPublicKey: input.identitySigningPublicKey,
+                name: input.deviceName,
+              })
+              .returning({ id: devices.id })
+          )[0]?.id;
+
+      if (!resolvedDeviceId) {
+        throw new Error("Failed to create device.");
+      }
+
+      await tx
+        .update(devices)
+        .set({
+          identitySigningPublicKey: input.identitySigningPublicKey,
+          name: input.deviceName,
+        })
+        .where(eq(devices.id, resolvedDeviceId));
+
+      await tx
+        .update(signedPreKeys)
+        .set({ isActive: false })
+        .where(eq(signedPreKeys.deviceId, resolvedDeviceId));
+
+      await tx
+        .delete(oneTimePreKeys)
+        .where(eq(oneTimePreKeys.deviceId, resolvedDeviceId));
+
+      await tx.insert(signedPreKeys).values({
+        deviceId: resolvedDeviceId,
+        keyId: input.signedPreKey.keyId,
+        publicKey: input.signedPreKey.publicKey,
+        signature: input.signedPreKey.signature,
+        isActive: true,
+      });
+
+      if (input.oneTimePreKeys.length > 0) {
+        await tx.insert(oneTimePreKeys).values(
+          input.oneTimePreKeys.map((key) => ({
+            deviceId: resolvedDeviceId,
+            keyId: key.keyId,
+            publicKey: key.publicKey,
+          })),
+        );
+      }
+
+      return resolvedDeviceId;
+    });
+
+    return {
+      success: true,
+      message: "Key bundle published.",
+      deviceId,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to publish key bundle: ${error}`,
+    };
+  }
+}
+
+export async function upgradeLegacyDeviceBundleAction(input: {
+  deviceId: number;
+  devicePublicKey: string;
+  identitySigningPublicKey: string;
+  signedPreKey: SignedPreKeyInput;
+  oneTimePreKeys: OneTimePreKeyInput[];
+}): Promise<ActionResult> {
+  if (!(await globalPOSTRateLimit())) {
+    return { success: false, message: "Too many requests" };
+  }
+
+  try {
+    const user = await requireAuthenticatedUser();
+    await getOwnedDeviceOrThrow(user.id, input.deviceId);
+
+    if (
+      !isNonEmptyString(input.devicePublicKey) ||
+      !isNonEmptyString(input.identitySigningPublicKey) ||
+      !validateSignedPreKeyInput(input.signedPreKey) ||
+      !Array.isArray(input.oneTimePreKeys) ||
+      input.oneTimePreKeys.some((key) => !validateOneTimePreKeyInput(key))
+    ) {
+      return { success: false, message: "Invalid upgrade bundle." };
+    }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(devices)
+        .set({
+          publicKey: input.devicePublicKey,
+          identitySigningPublicKey: input.identitySigningPublicKey,
+        })
+        .where(
+          and(eq(devices.id, input.deviceId), eq(devices.userId, user.id)),
+        );
+
+      await tx
+        .update(signedPreKeys)
+        .set({ isActive: false })
+        .where(eq(signedPreKeys.deviceId, input.deviceId));
+
+      await tx
+        .delete(oneTimePreKeys)
+        .where(eq(oneTimePreKeys.deviceId, input.deviceId));
+
+      await tx.insert(signedPreKeys).values({
+        deviceId: input.deviceId,
+        keyId: input.signedPreKey.keyId,
+        publicKey: input.signedPreKey.publicKey,
+        signature: input.signedPreKey.signature,
+        isActive: true,
+      });
+
+      if (input.oneTimePreKeys.length > 0) {
+        await tx.insert(oneTimePreKeys).values(
+          input.oneTimePreKeys.map((key) => ({
+            deviceId: input.deviceId,
+            keyId: key.keyId,
+            publicKey: key.publicKey,
+          })),
+        );
+      }
+    });
+
+    return { success: true, message: "Device upgraded successfully." };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to upgrade device: ${error}`,
+    };
+  }
+}
+
+export async function fetchKeyBundleAction(targetDeviceId: number): Promise<{
+  success: boolean;
+  bundle?: {
+    identityDHKey: string;
+    identitySigningKey: string;
+    signedPreKey: { keyId: number; publicKey: string; signature: string };
+    oneTimePreKey?: { keyId: number; publicKey: string };
+  };
+  error?: string;
+}> {
+  if (!(await globalPOSTRateLimit())) {
+    return { success: false, error: "Too many requests" };
+  }
+
+  try {
+    const user = await requireAuthenticatedUser();
+    const targetDevice = await db.query.devices.findFirst({
+      where: eq(devices.id, targetDeviceId),
+      columns: {
+        id: true,
+        userId: true,
+        publicKey: true,
+        identitySigningPublicKey: true,
+      },
+    });
+
+    if (!targetDevice) {
+      return { success: false, error: "Target device not found." };
+    }
+
+    const allowed =
+      targetDevice.userId === user.id ||
+      (await areUsersFriends(user.id, targetDevice.userId));
+
+    if (!allowed) {
+      return {
+        success: false,
+        error: "You are not allowed to fetch this key bundle.",
+      };
+    }
+
+    const activeSignedPreKey = await db.query.signedPreKeys.findFirst({
+      where: and(
+        eq(signedPreKeys.deviceId, targetDeviceId),
+        eq(signedPreKeys.isActive, true),
+      ),
+      orderBy: (table, { desc }) => [desc(table.createdAt)],
+      columns: {
+        keyId: true,
+        publicKey: true,
+        signature: true,
+      },
+    });
+
+    if (!activeSignedPreKey) {
+      return {
+        success: false,
+        error: "Target device does not have an active signed pre-key.",
+      };
+    }
+
+    const deletedOpkResult = await db.execute(sql`
+      DELETE FROM chat_device_one_time_prekeys
+      WHERE id = (
+        SELECT id
+        FROM chat_device_one_time_prekeys
+        WHERE device_id = ${targetDeviceId}
+        ORDER BY created_at ASC
+        LIMIT 1
+      )
+      RETURNING key_id AS "keyId", public_key AS "publicKey"
+    `);
+
+    const oneTimePreKey = deletedOpkResult.rows[0] as
+      | { keyId: number; publicKey: string }
+      | undefined;
+
+    return {
+      success: true,
+      bundle: {
+        identityDHKey: targetDevice.publicKey,
+        identitySigningKey: targetDevice.identitySigningPublicKey,
+        signedPreKey: activeSignedPreKey,
+        ...(oneTimePreKey ? { oneTimePreKey } : {}),
+      },
+    };
+  } catch (error) {
+    return { success: false, error: `Failed to fetch key bundle: ${error}` };
+  }
+}
+
+export async function refillOneTimePreKeysAction(
+  deviceId: number,
+  keys: OneTimePreKeyInput[],
+): Promise<ActionResult> {
+  if (!(await globalPOSTRateLimit())) {
+    return { success: false, message: "Too many requests" };
+  }
+
+  try {
+    const user = await requireAuthenticatedUser();
+    await getOwnedDeviceOrThrow(user.id, deviceId);
+
+    if (
+      !Array.isArray(keys) ||
+      keys.length === 0 ||
+      keys.some((key) => !validateOneTimePreKeyInput(key))
+    ) {
+      return { success: false, message: "Invalid one-time pre-key payload." };
+    }
+
+    await db.insert(oneTimePreKeys).values(
+      keys.map((key) => ({
+        deviceId,
+        keyId: key.keyId,
+        publicKey: key.publicKey,
+      })),
+    );
+
+    return { success: true, message: "One-time pre-keys uploaded." };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to refill one-time pre-keys: ${error}`,
+    };
+  }
+}
+
+export async function rotateSignedPreKeyAction(input: {
+  deviceId: number;
+  signedPreKey: SignedPreKeyInput;
+}): Promise<ActionResult> {
+  if (!(await globalPOSTRateLimit())) {
+    return { success: false, message: "Too many requests" };
+  }
+
+  try {
+    const user = await requireAuthenticatedUser();
+    await getOwnedDeviceOrThrow(user.id, input.deviceId);
+
+    if (!validateSignedPreKeyInput(input.signedPreKey)) {
+      return { success: false, message: "Invalid signed pre-key payload." };
+    }
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(signedPreKeys)
+        .set({ isActive: false })
+        .where(
+          and(
+            eq(signedPreKeys.deviceId, input.deviceId),
+            eq(signedPreKeys.isActive, true),
+          ),
+        );
+
+      await tx.insert(signedPreKeys).values({
+        deviceId: input.deviceId,
+        keyId: input.signedPreKey.keyId,
+        publicKey: input.signedPreKey.publicKey,
+        signature: input.signedPreKey.signature,
+        isActive: true,
+      });
+    });
+
+    return { success: true, message: "Signed pre-key rotated." };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to rotate signed pre-key: ${error}`,
+    };
+  }
+}
+
+export async function getCurrentDeviceStateAction(deviceId: number): Promise<{
+  success: boolean;
+  device?: {
+    id: number;
+    publicKey: string;
+    identitySigningPublicKey: string;
+  };
+  activeSignedPreKey?: {
+    keyId: number;
+    publicKey: string;
+    signature: string;
+    createdAt: string;
+  } | null;
+  oneTimePreKeyCount?: number;
+  requiresUpgrade?: boolean;
+  error?: string;
+}> {
+  if (!(await globalGETRateLimit())) {
+    return { success: false, error: "Too many requests" };
+  }
+
+  try {
+    const user = await requireAuthenticatedUser();
+    const device = await getOwnedDeviceOrThrow(user.id, deviceId);
+    const activeSignedPreKey = await db.query.signedPreKeys.findFirst({
+      where: and(
+        eq(signedPreKeys.deviceId, deviceId),
+        eq(signedPreKeys.isActive, true),
+      ),
+      orderBy: (table, { desc }) => [desc(table.createdAt)],
+      columns: {
+        keyId: true,
+        publicKey: true,
+        signature: true,
+        createdAt: true,
+      },
+    });
+    const deviceOneTimePreKeys = await db.query.oneTimePreKeys.findMany({
+      where: eq(oneTimePreKeys.deviceId, deviceId),
+      columns: {
+        id: true,
+      },
+    });
+
+    return {
+      success: true,
+      device: {
+        id: device.id,
+        publicKey: device.publicKey,
+        identitySigningPublicKey: device.identitySigningPublicKey,
+      },
+      activeSignedPreKey: activeSignedPreKey
+        ? {
+            keyId: activeSignedPreKey.keyId,
+            publicKey: activeSignedPreKey.publicKey,
+            signature: activeSignedPreKey.signature,
+            createdAt: activeSignedPreKey.createdAt.toISOString(),
+          }
+        : null,
+      oneTimePreKeyCount: deviceOneTimePreKeys.length,
+      requiresUpgrade:
+        device.identitySigningPublicKey.length === 0 ||
+        activeSignedPreKey === null,
+    };
+  } catch (error) {
+    return { success: false, error: `Failed to load device state: ${error}` };
+  }
+}
+
 const MESSAGES_PER_PAGE = 50;
 
 export async function getPaginatedMessages(
@@ -1045,7 +1691,15 @@ export async function getPaginatedMessages(
   }
 
   const [userId1, userId2] = chatId.split("--").map(Number);
+  if (user.id !== userId1 && user.id !== userId2) {
+    throw new Error("You are not allowed to access this chat.");
+  }
   const chatPartnerId = user.id === userId1 ? userId2 : userId1;
+
+  const canAccessChat = await areUsersFriends(user.id, chatPartnerId);
+  if (!canAccessChat) {
+    throw new Error("You are not allowed to access this chat.");
+  }
 
   const query = db
     .select()
@@ -1084,6 +1738,13 @@ export async function getVerifiedDeviceIdsForContact(
   const { user } = await getCurrentSession();
   if (!user) {
     throw new Error("Not authenticated");
+  }
+
+  if (contactUserId !== user.id) {
+    const canAccessContact = await areUsersFriends(user.id, contactUserId);
+    if (!canAccessContact) {
+      throw new Error("You are not allowed to view these devices.");
+    }
   }
 
   const contactDevices = await db.query.devices.findMany({

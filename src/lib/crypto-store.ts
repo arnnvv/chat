@@ -1,11 +1,64 @@
-const DB_NAME = "chat-crypto-db";
-const DB_VERSION = 1;
-const KEY_STORE_NAME = "crypto-keys";
-const CONFIG_STORE_NAME = "device-config";
+export const DB_NAME = "chat-crypto-db";
+export const DB_VERSION = 2;
+export const KEY_STORE_NAME = "crypto-keys";
+export const CONFIG_STORE_NAME = "device-config";
+export const IDENTITY_KEY_STORE_NAME = "identity-keys";
+export const SIGNED_PREKEY_STORE_NAME = "signed-prekeys";
+export const ONE_TIME_PREKEY_STORE_NAME = "one-time-prekeys";
+export const RATCHET_SESSION_STORE_NAME = "ratchet-sessions";
+export const SKIPPED_MESSAGE_KEY_STORE_NAME = "skipped-message-keys";
+export const MESSAGE_CACHE_STORE_NAME = "message-cache";
 
 let db: IDBDatabase | null = null;
 
-const getDB = (): Promise<IDBDatabase> => {
+const upgradeCryptoDB = (dbInstance: IDBDatabase): void => {
+  if (!dbInstance.objectStoreNames.contains(KEY_STORE_NAME)) {
+    dbInstance.createObjectStore(KEY_STORE_NAME);
+  }
+
+  if (!dbInstance.objectStoreNames.contains(CONFIG_STORE_NAME)) {
+    dbInstance.createObjectStore(CONFIG_STORE_NAME);
+  }
+
+  if (!dbInstance.objectStoreNames.contains(IDENTITY_KEY_STORE_NAME)) {
+    dbInstance.createObjectStore(IDENTITY_KEY_STORE_NAME);
+  }
+
+  if (!dbInstance.objectStoreNames.contains(SIGNED_PREKEY_STORE_NAME)) {
+    const store = dbInstance.createObjectStore(SIGNED_PREKEY_STORE_NAME, {
+      keyPath: "id",
+    });
+    store.createIndex("isActive", "isActive", { unique: false });
+  }
+
+  if (!dbInstance.objectStoreNames.contains(ONE_TIME_PREKEY_STORE_NAME)) {
+    dbInstance.createObjectStore(ONE_TIME_PREKEY_STORE_NAME, {
+      keyPath: "id",
+    });
+  }
+
+  if (!dbInstance.objectStoreNames.contains(RATCHET_SESSION_STORE_NAME)) {
+    dbInstance.createObjectStore(RATCHET_SESSION_STORE_NAME, {
+      keyPath: "remoteDeviceId",
+    });
+  }
+
+  if (!dbInstance.objectStoreNames.contains(SKIPPED_MESSAGE_KEY_STORE_NAME)) {
+    const store = dbInstance.createObjectStore(SKIPPED_MESSAGE_KEY_STORE_NAME, {
+      keyPath: "id",
+    });
+    store.createIndex("remoteDeviceId", "remoteDeviceId", { unique: false });
+  }
+
+  if (!dbInstance.objectStoreNames.contains(MESSAGE_CACHE_STORE_NAME)) {
+    const store = dbInstance.createObjectStore(MESSAGE_CACHE_STORE_NAME, {
+      keyPath: "id",
+    });
+    store.createIndex("messageId", "messageId", { unique: false });
+  }
+};
+
+export const getCryptoDB = (): Promise<IDBDatabase> => {
   if (db) {
     return Promise.resolve(db);
   }
@@ -24,23 +77,17 @@ const getDB = (): Promise<IDBDatabase> => {
     request.onupgradeneeded = (event) => {
       const target = event.target as IDBOpenDBRequest | null;
       if (!target) return;
-      const dbInstance = target.result;
-      if (!dbInstance.objectStoreNames.contains(KEY_STORE_NAME)) {
-        dbInstance.createObjectStore(KEY_STORE_NAME);
-      }
-      if (!dbInstance.objectStoreNames.contains(CONFIG_STORE_NAME)) {
-        dbInstance.createObjectStore(CONFIG_STORE_NAME);
-      }
+      upgradeCryptoDB(target.result);
     };
   });
 };
 
-const performTransaction = async <T>(
+export const performTransaction = async <T>(
   storeName: string,
   mode: IDBTransactionMode,
   action: (store: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T> => {
-  const dbInstance = await getDB();
+  const dbInstance = await getCryptoDB();
 
   return new Promise((resolve, reject) => {
     const transaction = dbInstance.transaction(storeName, mode);

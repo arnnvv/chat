@@ -27,8 +27,12 @@ export function DeviceVerificationModal({
 
   useEffect(() => {
     async function calculateSafetyNumber() {
-      const myKeys = sessionUser.devices.map((d) => d.publicKey);
-      const theirKeys = chatPartner.devices.map((d) => d.publicKey);
+      const myKeys = sessionUser.devices
+        .map((d) => d.identitySigningPublicKey)
+        .filter(Boolean);
+      const theirKeys = chatPartner.devices
+        .map((d) => d.identitySigningPublicKey)
+        .filter(Boolean);
 
       const num = await generateSafetyNumber(myKeys, theirKeys);
       setSafetyNumber(num);

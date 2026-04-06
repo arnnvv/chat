@@ -7,16 +7,21 @@ import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getPaginatedMessages } from "@/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  decryptMessage,
-  deriveSharedSecret,
-  importPublicKey,
-} from "@/lib/crypto";
-import { cryptoStore } from "@/lib/crypto-store";
+import { decryptConversationMessage } from "@/lib/crypto/client";
 import type { Message } from "@/lib/db/schema";
 import type { UserWithDevices } from "@/lib/getFriends";
 import { pusherClient } from "@/lib/pusher-client";
 import { cn, toPusherKey } from "@/lib/utils";
+
+interface IncomingChatMessage extends Message {
+  senderName?: string;
+  senderImage?: string | null;
+}
+
+interface PendingSentMessageEventDetail {
+  message: Message;
+  plaintext: string;
+}
 
 function ChatMessage({
   message,
@@ -92,6 +97,22 @@ interface DecryptedMessage extends Message {
   decryptedContent: string | null;
 }
 
+function mergeMessage(
+  current: DecryptedMessage[],
+  nextMessage: DecryptedMessage,
+): DecryptedMessage[] {
+  const existingIndex = current.findIndex(
+    (message) => message.id === nextMessage.id,
+  );
+  if (existingIndex === -1) {
+    return [...current, nextMessage];
+  }
+
+  return current.map((message, index) =>
+    index === existingIndex ? nextMessage : message,
+  );
+}
+
 export const MessagesComp = ({
   chatId,
   chatPartner,
@@ -110,7 +131,6 @@ export const MessagesComp = ({
   const [decryptedMessages, setDecryptedMessages] = useState<
     DecryptedMessage[]
   >(() => initialMessages.map((msg) => ({ ...msg, decryptedContent: null })));
-
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length >= 50);
   const cursorRef = useRef<string | null>(
@@ -119,61 +139,32 @@ export const MessagesComp = ({
       : null,
   );
 
-  const cryptoKeysRef = useRef<{
-    ownPrivateKey: CryptoKey | null;
-    ownDeviceId: string | null;
-    partnerPublicKeys: Map<number, CryptoKey>;
-    isSetup: boolean;
-  }>({
-    ownPrivateKey: null,
-    ownDeviceId: null,
-    partnerPublicKeys: new Map(),
-    isSetup: false,
-  });
-
-  const decryptMessageContent = useCallback(
-    async (message: Message): Promise<string> => {
-      const { ownPrivateKey, ownDeviceId, partnerPublicKeys } =
-        cryptoKeysRef.current;
-      if (!ownPrivateKey || !ownDeviceId) return "[Key Error]";
+  const decryptSingleMessage = useCallback(
+    async (message: Message): Promise<DecryptedMessage> => {
       try {
-        const payload = JSON.parse(message.content);
-        const { senderDeviceId, recipients } = payload;
-        const ownDeviceIdNum = parseInt(ownDeviceId, 10);
-        const senderIsSelf = message.senderId === sessionId;
-
-        if (senderIsSelf) {
-          const anyRecipientIdStr = Object.keys(recipients)[0];
-          if (!anyRecipientIdStr) return "[No Recipients]";
-          const partnerPublicKey = partnerPublicKeys.get(
-            parseInt(anyRecipientIdStr, 10),
-          );
-          if (!partnerPublicKey) return "[Partner Key Error]";
-          const sharedKey = await deriveSharedSecret(
-            ownPrivateKey,
-            partnerPublicKey,
-          );
-          return await decryptMessage(sharedKey, recipients[anyRecipientIdStr]);
-        } else {
-          const encryptedForMe = recipients[ownDeviceIdNum];
-          if (!encryptedForMe) return "[Not for this device]";
-          const senderPublicKey = partnerPublicKeys.get(senderDeviceId);
-          if (!senderPublicKey) return "[Sender Key Error]";
-          const sharedKey = await deriveSharedSecret(
-            ownPrivateKey,
-            senderPublicKey,
-          );
-          return await decryptMessage(sharedKey, encryptedForMe);
-        }
-      } catch (_e) {
-        return message.content;
+        return {
+          ...message,
+          decryptedContent: await decryptConversationMessage({
+            message,
+            currentUserId: sessionId,
+            contact: chatPartner,
+          }),
+        };
+      } catch {
+        return {
+          ...message,
+          decryptedContent: "[Encrypted message]",
+        };
       }
     },
-    [sessionId],
+    [chatPartner, sessionId],
   );
 
   const fetchPrevious = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
+    if (isLoadingMore || !hasMore) {
+      return;
+    }
+
     setIsLoadingMore(true);
     try {
       const { messages: newMessages, nextCursor } = await getPaginatedMessages(
@@ -184,58 +175,39 @@ export const MessagesComp = ({
       setHasMore(nextCursor !== null);
 
       const decryptedNewMessages = await Promise.all(
-        newMessages.map(async (msg) => ({
-          ...msg,
-          decryptedContent: await decryptMessageContent(msg),
-        })),
+        newMessages.map(decryptSingleMessage),
       );
 
       setDecryptedMessages((prev) => [
         ...decryptedNewMessages.reverse(),
         ...prev,
       ]);
-    } catch (_error) {
+    } catch {
       toast.error("Failed to load older messages.");
     } finally {
       setIsLoadingMore(false);
     }
-  }, [chatId, hasMore, isLoadingMore, decryptMessageContent]);
+  }, [chatId, decryptSingleMessage, hasMore, isLoadingMore]);
 
   useEffect(() => {
-    const setupAndDecrypt = async () => {
-      try {
-        if (cryptoKeysRef.current.isSetup) return;
-        const privateKey = await cryptoStore.getKey("privateKey");
-        const deviceId = await cryptoStore.getDeviceId();
-        if (!privateKey || !deviceId)
-          throw new Error("Local device keys not found.");
-        cryptoKeysRef.current.ownPrivateKey = privateKey;
-        cryptoKeysRef.current.ownDeviceId = deviceId;
-        const partnerDeviceList = chatPartner.devices;
-        await Promise.all(
-          partnerDeviceList.map(async (device) => {
-            const importedKey = await importPublicKey(device.publicKey);
-            cryptoKeysRef.current.partnerPublicKeys.set(device.id, importedKey);
-          }),
-        );
-        cryptoKeysRef.current.isSetup = true;
-        const newlyDecrypted = await Promise.all(
-          initialMessages.map(async (msg) => ({
-            ...msg,
-            decryptedContent: await decryptMessageContent(msg),
-          })),
-        );
-        setDecryptedMessages(newlyDecrypted);
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Failed to set up secure session.",
-        );
+    let cancelled = false;
+
+    const decryptInitialMessages = async () => {
+      const nextMessages = await Promise.all(
+        initialMessages.map(decryptSingleMessage),
+      );
+
+      if (!cancelled) {
+        setDecryptedMessages(nextMessages);
       }
     };
-    setupAndDecrypt();
-  }, [chatPartner.devices, initialMessages, decryptMessageContent]);
+
+    decryptInitialMessages();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [decryptSingleMessage, initialMessages]);
 
   const virtualizer = useVirtualizer({
     count: decryptedMessages.length,
@@ -264,31 +236,47 @@ export const MessagesComp = ({
   }, [virtualizer, decryptedMessages.length]);
 
   useEffect(() => {
-    const pusherMessageHandler = async (message: Message) => {
-      if (!cryptoKeysRef.current.isSetup) return;
-      const decryptedContent = await decryptMessageContent(message);
+    const pusherMessageHandler = async (message: IncomingChatMessage) => {
+      const decrypted = await decryptSingleMessage(message);
       const parentEl = parentRef.current;
       const isAtBottom =
         parentEl &&
         parentEl.scrollHeight - parentEl.scrollTop - parentEl.clientHeight < 1;
 
-      setDecryptedMessages((prev) => [
-        ...prev,
-        { ...message, decryptedContent },
-      ]);
+      setDecryptedMessages((prev) => mergeMessage(prev, decrypted));
 
       if (isAtBottom) {
         virtualizer.scrollToIndex(decryptedMessages.length, { align: "end" });
       }
     };
 
-    pusherClient.subscribe(toPusherKey(`private-chat:${chatId}`));
-    pusherClient.bind("incoming-message", pusherMessageHandler);
-    return () => {
-      pusherClient.unsubscribe(toPusherKey(`private-chat:${chatId}`));
-      pusherClient.unbind("incoming-message", pusherMessageHandler);
+    const pendingMessageHandler = (event: Event): void => {
+      const customEvent = event as CustomEvent<PendingSentMessageEventDetail>;
+      setDecryptedMessages((prev) =>
+        mergeMessage(prev, {
+          ...customEvent.detail.message,
+          decryptedContent: customEvent.detail.plaintext,
+        }),
+      );
     };
-  }, [chatId, decryptMessageContent, decryptedMessages.length, virtualizer]);
+
+    const channelName = toPusherKey(`private-chat:${chatId}`);
+    pusherClient.subscribe(channelName);
+    pusherClient.bind("incoming-message", pusherMessageHandler);
+    window.addEventListener(
+      "chat:message-sent",
+      pendingMessageHandler as EventListener,
+    );
+
+    return () => {
+      pusherClient.unsubscribe(channelName);
+      pusherClient.unbind("incoming-message", pusherMessageHandler);
+      window.removeEventListener(
+        "chat:message-sent",
+        pendingMessageHandler as EventListener,
+      );
+    };
+  }, [chatId, decryptSingleMessage, decryptedMessages.length, virtualizer]);
 
   return (
     <div

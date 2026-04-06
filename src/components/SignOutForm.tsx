@@ -10,6 +10,7 @@ import {
   useTransition,
 } from "react";
 import { toast } from "sonner";
+import { sessionStore } from "@/lib/crypto/session-store";
 import { type ActionResult, isFormControl } from "@/lib/formComtrol";
 import { Spinner } from "./ui/spinner";
 
@@ -29,6 +30,7 @@ export const SignOutFormComponent = ({
         const result = await action();
 
         if (result.success) {
+          await sessionStore.clearAll();
           toast.success(result.message, {
             id: "success-toast",
             action: {

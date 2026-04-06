@@ -47,7 +47,7 @@ export function OTPInput({ userEmail }: { userEmail: string }): JSX.Element {
       const result = await verifyOTPAction(formData);
       if (result?.success) {
         toast.success(result.message);
-        router.refresh();
+        router.replace("/");
       } else {
         toast.error(result?.message || "Invalid OTP");
       }

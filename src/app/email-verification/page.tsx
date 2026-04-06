@@ -5,7 +5,7 @@ import { OTPInput } from "@/components/OTPInput";
 import { globalGETRateLimit } from "@/lib/request";
 
 export default async function OTPPage(): Promise<JSX.Element | undefined> {
-  if (!globalGETRateLimit()) return;
+  if (!(await globalGETRateLimit())) return;
   const { user } = await getCurrentSession();
   if (!user) return redirect("/signup");
   if (user.verified) return redirect("/");

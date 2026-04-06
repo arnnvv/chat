@@ -5,7 +5,9 @@ export async function generateSafetyNumber(
   myPublicKeys: string[],
   theirPublicKeys: string[],
 ): Promise<string> {
-  const allKeys = [...myPublicKeys, ...theirPublicKeys];
+  const allKeys = [...myPublicKeys, ...theirPublicKeys].filter(
+    (key): key is string => typeof key === "string" && key.length > 0,
+  );
   const sortedAllKeys = allKeys.sort();
 
   const combinedKeys = sortedAllKeys.join("");

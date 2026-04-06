@@ -9,7 +9,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { DeviceVerificationModal } from "@/components/DeviceVerificationModal";
 import { MessagesComp } from "@/components/MessagesComp";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import type { Device, Message } from "@/lib/db/schema";
+import type { Message } from "@/lib/db/schema";
 import type { UserWithDevices } from "@/lib/getFriends";
 
 interface ChatInterfaceProps {
@@ -17,7 +17,7 @@ interface ChatInterfaceProps {
   chatPartner: UserWithDevices;
   sessionUser: UserWithDevices;
   initialMessages: Message[];
-  initialUnverifiedDevices: Pick<Device, "id" | "publicKey">[];
+  initialUnverifiedDevices: UserWithDevices["devices"];
 }
 
 export default function ChatInterface({
